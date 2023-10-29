@@ -1,0 +1,273 @@
+import ast
+import inspect
+import json
+import logging
+import re
+from dataclasses import dataclass
+from typing import Optional, List, Dict, Any, Union, Callable, Type, Tuple
+
+import tiktoken
+
+from nimbusagent.functions import parser
+from nimbusagent.functions.responses import FuncResponse, InternalFuncResponse, DictFuncResponse
+from nimbusagent.memory.base import AgentMemory
+from nimbusagent.utils.helper import find_similar_embedding_list, combine_lists_unique
+
+
+@dataclass
+class FunctionInfo:
+    name: str
+    definition: str
+    mapping: Union[Callable, Any]
+    mapping_name: str
+    tokens: int
+
+
+class FunctionHandler:
+    functions = None
+    func_mapping = None
+    always_use = None
+    orig_functions: dict = None
+    pattern_groups = None
+    chat_history: AgentMemory = None
+    processed_functions = None
+
+    def __init__(self, functions: list = None,
+                 embeddings: list = None,
+                 k_nearest: int = 3,
+                 always_use: list = None,
+                 pattern_groups: list = None,
+                 calling_function_start_callback: callable = None,
+                 calling_function_stop_callback: callable = None,
+                 chat_history: AgentMemory = None
+                 ):
+
+        self.embeddings = embeddings
+        self.k_nearest = k_nearest
+        self.always_use = always_use
+        self.pattern_groups = pattern_groups
+        self.chat_history = chat_history
+        self.encoding = tiktoken.get_encoding("cl100k_base")
+
+        self.orig_functions = {func.__name__: func for func in functions} if functions else None
+        if not embeddings:
+            self.functions = self.parse_functions(functions)
+            self.func_mapping = self.create_func_mapping(functions)
+
+        self.calling_function_start_callback = calling_function_start_callback
+        self.calling_function_stop_callback = calling_function_stop_callback
+
+    def _get_function_info(self, func_name: str) -> Optional[FunctionInfo]:
+        if not self.orig_functions:
+            return None
+
+        func = self.orig_functions.get(func_name)
+        if not func:
+            return None
+
+        func_definition = parser.func_metadata(func)
+        func_tokens = self.tokenize(json.dumps(func_definition))
+        mapping_name, mapping = self.create_individual_func_mapping(func)
+        return FunctionInfo(name=func_name,
+                            definition=func_definition,
+                            tokens=func_tokens,
+                            mapping=mapping,
+                            mapping_name=mapping_name)
+
+    def _get_group_function(self, query: str) -> Optional[List[str]]:
+        if not self.pattern_groups:
+            return None
+
+        function_names = []
+
+        for group in self.pattern_groups:
+            if re.search(group['pattern'], query):
+                for func in group['functions']:
+                    func_name = func if isinstance(func, str) else func.__name__
+                    if func_name not in function_names and func_name in self.orig_functions:
+                        function_names.append(func_name)
+
+        return function_names
+
+    def remove_functions_mappings(self, function_names: List[str]):
+        if not self.processed_functions:
+            return
+
+        use_functions = []
+        use_names = []
+        token_count = 0
+        for func in self.processed_functions:
+            if func.name not in function_names:
+                use_functions.append(func)
+                use_names.append(func.name)
+                token_count += func.tokens
+
+        self._set_functions_and_mappings(use_functions)
+        logging.info("Removed functions: %s", function_names)
+        logging.info(f"Using functions: {use_names}")
+        logging.info(f"Total tokens: {token_count}")
+
+    def reset_functions_mappings(self):
+        self._set_functions_and_mappings(self.processed_functions)
+
+    def _set_functions_and_mappings(self, functions: Optional[List[FunctionInfo]] = None):
+        if functions:
+            self.functions = [parser.func_metadata(func.mapping) for func in functions]
+            self.func_mapping = {func.mapping_name: func.mapping for func in functions}
+        else:
+            self.functions = None
+            self.func_mapping = None
+
+    def get_functions_from_query_and_history(self, query: str, history: List[Dict[str, Any]], max_tokens: int = 2250):
+        if not self.orig_functions:
+            return None
+
+        # Step 1: Initialize with 'always_use' functions
+        actual_function_names = self.always_use if self.always_use else []
+        # print("actual_function_names: ", actual_function_names)
+
+        # step 2: Add functions based on pattern groups on query
+        query_group_functions = self._get_group_function(query)
+        if query_group_functions:
+            actual_function_names = combine_lists_unique(actual_function_names, query_group_functions)
+            # print("query_group_functions: ", query_group_functions)
+            # print("actual_function_names: ", actual_function_names)
+
+        # step 3: Add functions based on embeddings
+        recent_history_and_query = [message['content'] for message in history[-2:]] + [query]
+        recent_history_and_query_str = " ".join(recent_history_and_query)
+
+        if self.embeddings:
+            similar_functions = find_similar_embedding_list(recent_history_and_query_str,
+                                                            function_embeddings=self.embeddings,
+                                                            k_nearest_neighbors=self.k_nearest)
+            similar_function_names = [d['name'] for d in similar_functions]
+            if similar_function_names:
+                actual_function_names = combine_lists_unique(actual_function_names, similar_function_names)
+                # print("similar_function_names: ", similar_function_names)
+                # print("actual_function_names: ", actual_function_names)
+
+        # step 4: Add functions based on pattern groups on history
+        query_group_functions = self._get_group_function(recent_history_and_query_str)
+        if query_group_functions:
+            actual_function_names = combine_lists_unique(actual_function_names, query_group_functions)
+            # print("history_group_functions: ", query_group_functions)
+
+        logging.info(f"Functions to use: {actual_function_names}")
+        # step 5: step through functions and get the function info, adding up to max_tokens
+
+        processed_functions = []
+        token_count = 0
+        for func_name in actual_function_names:
+            func_info = self._get_function_info(func_name)
+            if func_info:
+                processed_functions.append(func_info)
+                token_count += func_info.tokens
+                if token_count >= max_tokens:
+                    break
+
+        self.processed_functions = processed_functions
+        using_functions = [func.name for func in processed_functions]
+        logging.info(f"Using functions: {using_functions}")
+        logging.info(f"Total tokens: {token_count}")
+
+        # step 6: update self.functions and self.func_mapping
+        self._set_functions_and_mappings(processed_functions)
+
+    @staticmethod
+    def parse_messages(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        return [
+            {"role": message['role'], "content": message['content']}
+            for message in messages
+            if 'role' in message and 'content' in message
+        ]
+
+    @staticmethod
+    def parse_functions(functions: List[Union[Callable, Type]]) -> List[Dict[str, Any]]:
+        if not functions:
+            return []
+        return [parser.func_metadata(func) for func in functions]
+
+    def create_func_mapping(self, items: List[Union[Callable, Type]]) -> Dict[str, Union[Callable, Any]]:
+        if not items:
+            return {}
+
+        mapping = {}
+        for item in items:
+            key, value = self.create_individual_func_mapping(item)
+            mapping[key] = value
+
+        return mapping
+
+    @staticmethod
+    def create_individual_func_mapping(item: Union[Callable, Type]) -> Tuple[str, Callable]:
+        if callable(item):  # It's a function
+            return item.__name__, item
+        elif inspect.isclass(item):  # It's a class
+            return item.__name__, item()  # Create an instance of the class
+        else:
+            raise ValueError(f"Unsupported item {item}")
+
+    def handle_function_call(self, func_name: str, args_str: str) -> Optional[InternalFuncResponse]:
+        result = self._call_function(func_name, args_str)
+
+        if result is None:
+            return None
+
+        # Map the result to the appropriate AbstractFuncResponse subclass
+        if isinstance(result, FuncResponse):
+            response_obj = result
+        else:
+            response_obj = DictFuncResponse(result)
+
+        return response_obj.to_internal_response(func_name, args_str)
+
+    @staticmethod
+    def _execute_method(item: Any, method_name: str, args: Dict[str, Any]) -> Any:
+        method = getattr(item, method_name)
+        if not callable(method):
+            raise ValueError(f"Object {item} does not have a callable '{method_name}' method.")
+
+        args.pop('return', None)  # Remove the 'return' argument if it exists
+        return method(**args)
+
+    def _call_function(self, func_name: str, args_str: str):
+        args = self.get_args(args_str)
+
+        if self.calling_function_start_callback:
+            self.calling_function_start_callback(func_name, args)
+
+        item = self.func_mapping.get(func_name)
+        if item is None:
+            raise ValueError(f"Function or class {func_name} not found in function mapping.")
+
+        if callable(item) and not inspect.isclass(item):  # It's a function
+            res = item(**args)
+        else:  # It's a class or class instance
+            method_name = getattr(item, 'method_name', 'call')
+            if inspect.isclass(item):  # It's a class type
+                instance = item()
+                if hasattr(item, 'set_chat_history'):
+                    method = getattr(item, 'set_chat_history')
+                    method(instance, self.chat_history)
+                res = self._execute_method(instance, method_name, args)
+            else:  # It's a class instance
+                if hasattr(item, 'set_chat_history'):
+                    method = getattr(item, 'set_chat_history')
+                    method(item, self.chat_history)
+                res = self._execute_method(item, method_name, args)
+
+        if self.calling_function_stop_callback:
+            self.calling_function_stop_callback()
+        return res
+
+    @staticmethod
+    def get_args(args_str: str):
+        return ast.literal_eval(args_str)
+
+    @property
+    def functions_list(self) -> List[Dict[str, Any]]:
+        return self.functions
+
+    def tokenize(self, content: str) -> int:
+        return len(self.encoding.encode(content))

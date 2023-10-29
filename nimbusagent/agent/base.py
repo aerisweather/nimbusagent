@@ -1,0 +1,184 @@
+import os
+from typing import Optional, List, Union
+
+import openai
+
+from nimbusagent.functions.handler import FunctionHandler
+from nimbusagent.memory.base import AgentMemory
+from nimbusagent.utils.helper import is_query_safe
+
+SYS_MSG = """You are a helpful assistant."""
+
+MODERATION_FAIL_MSG = """I'm sorry, I can't help you with that as it is not appropriate."""
+
+HAVING_TROUBLE_MSG = """I'm sorry, I'm having trouble understanding you."""
+DEFAULT_MODEL_NAME = 'gpt-4-0613'
+DEFAULT_TEMP = 0.1
+DEFAULT_SECONDARY_MODEL_NAME = 'gpt-3.5-turbo'
+
+
+class BaseAgent:
+    def __init__(
+            self,
+            openai_api_key: str = None,
+            model_name: str = DEFAULT_MODEL_NAME,
+            secondary_model_name: str = DEFAULT_SECONDARY_MODEL_NAME,
+            temperature: float = DEFAULT_TEMP,
+            max_tokens: int = 500,
+
+            functions: Optional[list] = None,
+            functions_embeddings: Optional[List[dict]] = None,
+            functions_always_use: Optional[List[str]] = None,
+            functions_pattern_groups: Optional[List[dict]] = None,
+            functions_k_closest: int = 3,
+
+            system_message: str = SYS_MSG,
+            message_history: Optional[List[dict]] = None,
+
+            calling_function_start_callback: Optional[callable] = None,
+            calling_function_stop_callback: Optional[callable] = None,
+
+            perform_moderation: bool = True,
+            moderation_fail_message: str = MODERATION_FAIL_MSG,
+
+            memory_max_entries: int = 20,
+            memory_max_tokens: int = 2000,
+
+            internal_thoughts_max_entries: int = 8,
+            loops_max: int = 8,
+
+            send_events: bool = False,
+    ):
+        """
+        Args:
+            openai_api_key: the OpenAI API key to use
+            model_name: The name of the model to use (default: 'gpt-4-0613')
+            temperature: The temperature for the response sampling (default: 0.1)
+            functions: The list of functions to use (default: None)
+            functions_embeddings: The list of function embeddings to use (default: None)
+            functions_pattern_groups: The list of function pattern groups to use (default: None)
+            functions_k_closest: The number of closest functions to use (default: 3)
+            functions_always_use: The list of functions to always use (default: None)
+            system_message: The message to send to the user when the agent starts
+                            (default: "You are a helpful assistant.")
+            message_history: The message history to use (default: None)
+            calling_function_start_callback: The callback to call when a function is called (default: None)
+            calling_function_stop_callback: The callback to call when a function is stopped (default: None)
+            perform_moderation: True if moderation should be performed (default: True)
+            moderation_fail_message: The message to send to the user when a message is not appropriate
+                                    (default: "I'm sorry, I can't help you with that as it is not appropriate.")
+            memory_max_entries: The maximum number of entries to store in the memory (default: 20)
+            memory_max_tokens: The maximum number of tokens to store in the memory (default: 2000)
+            internal_thoughts_max_entries: The maximum number of entries to store in the internal thoughts (default: 3)
+            loops_max: The maximum number of loops to allow (default: 5)
+            send_events: True if events should be sent (default: False)
+        """
+        openai.api_key = openai_api_key if openai_api_key is not None else os.getenv("OPENAI_API_KEY")
+
+        # self.internal_thoughts: A list that captures the agent's intermediate
+        # processing and thoughts during a single 'ask' session. It gets cleared
+        # at the beginning of every new 'ask' to ensure no residual information
+        # affects the new processing.
+        self.internal_thoughts = []
+        self.internal_thoughts_max_entries = internal_thoughts_max_entries
+        self.model_name = model_name
+        self.secondary_model_name = secondary_model_name
+        self.temperature = temperature
+        self.max_tokens = max_tokens
+        self.system_message = None
+        self.set_system_message(system_message)
+        self.last_response = None
+        self.perform_moderation = perform_moderation
+        self.moderation_fail_message = moderation_fail_message
+        self.loops_max = loops_max
+        self.send_events = send_events
+        self.calling_function_start_callback = calling_function_start_callback
+        self.calling_function_stop_callback = calling_function_stop_callback
+
+        self.chat_history = AgentMemory(max_messages=memory_max_entries, max_tokens=memory_max_tokens)
+        if message_history is not None:
+            if self._history_needs_moderation(message_history):
+                raise ValueError('The message history contains inappropriate content.')
+            self.chat_history.set_chat_history(message_history)
+
+        self.function_handler = self._init_function_handler(functions, functions_embeddings, functions_k_closest,
+                                                            functions_always_use, functions_pattern_groups)
+
+    def set_system_message(self, message: str) -> None:
+        """Sets the system message."""
+        self.system_message = {"role": "system", "content": message}
+
+    def _init_function_handler(self, functions: Optional[List], functions_embeddings: Optional[List],
+                               functions_k_closest: int = 3,
+                               functions_always_use: Optional[List[str]] = None,
+                               functions_pattern_groups: Optional[List[dict]] = None) -> FunctionHandler:
+        return FunctionHandler(
+            functions=functions,
+            embeddings=functions_embeddings,
+            k_nearest=functions_k_closest,
+            always_use=functions_always_use,
+            pattern_groups=functions_pattern_groups,
+            calling_function_start_callback=self.calling_function_start_callback,
+            calling_function_stop_callback=self.calling_function_stop_callback,
+            chat_history=self.chat_history
+        )
+
+    def _create_chat_completion(
+            self, messages: list, use_functions: bool = True, function_call: str = 'auto', stream=False,
+            use_secondary_model: bool = False, force_no_functions: bool = False
+    ) -> openai.ChatCompletion:
+
+        mode_name = self.secondary_model_name if use_secondary_model else self.model_name
+
+        if use_functions and self.function_handler.functions and not force_no_functions:
+            res = openai.ChatCompletion.create(
+                model=mode_name,
+                temperature=self.temperature,
+                messages=messages,
+                functions=self.function_handler.functions,
+                function_call=function_call,
+                stream=stream
+            )
+        else:
+            res = openai.ChatCompletion.create(
+                model=mode_name,
+                temperature=self.temperature,
+                messages=messages,
+                stream=stream
+            )
+        return res
+
+    def _history_needs_moderation(self, history: List[dict]) -> bool:
+        """Handles history moderation."""
+        if not self.perform_moderation or not history:
+            return False
+
+        content_list = [d['content'] for d in history if 'content' in d]
+
+        return self._needs_moderation(" ".join(content_list))
+
+    def _needs_moderation(self, query: str) -> bool:
+        """Checks if a query requires moderation."""
+        return self.perform_moderation and not is_query_safe(query)
+
+    def _clear_internal_thoughts(self) -> None:
+        """Clears the internal thoughts of the agent."""
+        self.internal_thoughts = []
+
+    def _append_to_chat_history(self, role: str, content: str) -> None:
+        """Appends a new message to the chat history."""
+        self.chat_history.append({'role': role, 'content': content})
+
+    def get_last_response(self) -> Optional[Union[openai.ChatCompletion, str]]:
+        return self.last_response
+
+    def get_chat_history(self) -> List[dict]:
+        return self.chat_history.get_chat_history()
+
+    def get_functions(self) -> Optional[list]:
+        return self.function_handler.functions
+
+    def clear_chat_history(self) -> None:
+        """Clears the chat history."""
+
+        self.chat_history.clear_chat_history()
