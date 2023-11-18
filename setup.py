@@ -1,9 +1,9 @@
-import setuptools
+from setuptools import setup, find_packages
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-setuptools.setup(
+setup(
     name="nimbusagent",
     version="0.0.1",
     author="Lee Huffman",
@@ -16,7 +16,7 @@ setuptools.setup(
         "Bug Tracker": "https://github.com/hwleeh/nimbusagent/issues",
     },
     license="MIT",
-    packages=["nimbusagent"],
+    packages=find_packages(),
     install_requires=[
         'openai==0.27.8',
         'tiktoken==0.5.1',
