@@ -18,9 +18,9 @@ setuptools.setup(
     license="MIT",
     packages=["nimbusagent"],
     install_requires=[
-        'openai>=0.28.1',
-        'tiktoken>=0.5.1',
-        'pydantic>=2.4.2',
-        'numpy>=1.26.1'
+        'openai==0.27.8',
+        'tiktoken==0.5.1',
+        'pydantic==2.4.2',
+        'numpy==1.24.4'
     ]
 )
