@@ -1,7 +1,8 @@
 import os
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Literal
 
 import openai
+from openai import OpenAI
 
 from nimbusagent.functions.handler import FunctionHandler
 from nimbusagent.memory.base import AgentMemory
@@ -73,7 +74,8 @@ class BaseAgent:
             loops_max: The maximum number of loops to allow (default: 5)
             send_events: True if events should be sent (default: False)
         """
-        openai.api_key = openai_api_key if openai_api_key is not None else os.getenv("OPENAI_API_KEY")
+
+        self.client = OpenAI(api_key=openai_api_key if openai_api_key is not None else os.getenv("OPENAI_API_KEY"))
 
         # self.internal_thoughts: A list that captures the agent's intermediate
         # processing and thoughts during a single 'ask' session. It gets cleared
@@ -124,28 +126,27 @@ class BaseAgent:
         )
 
     def _create_chat_completion(
-            self, messages: list, use_functions: bool = True, function_call: str = 'auto', stream=False,
+            self, messages: list, use_functions: bool = True, function_call: Literal['auto', 'none'] = 'auto',
+            stream=False,
             use_secondary_model: bool = False, force_no_functions: bool = False
     ) -> openai.ChatCompletion:
 
         mode_name = self.secondary_model_name if use_secondary_model else self.model_name
 
         if use_functions and self.function_handler.functions and not force_no_functions:
-            res = openai.ChatCompletion.create(
+            res = self.client.chat.completions.create(
                 model=mode_name,
                 temperature=self.temperature,
                 messages=messages,
                 functions=self.function_handler.functions,
                 function_call=function_call,
-                stream=stream
-            )
+                stream=stream)
         else:
-            res = openai.ChatCompletion.create(
+            res = self.client.chat.completions.create(
                 model=mode_name,
                 temperature=self.temperature,
                 messages=messages,
-                stream=stream
-            )
+                stream=stream)
         return res
 
     def _history_needs_moderation(self, history: List[dict]) -> bool:

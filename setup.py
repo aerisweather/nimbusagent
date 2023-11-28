@@ -18,7 +18,7 @@ setup(
     license="MIT",
     packages=find_packages(),
     install_requires=[
-        'openai==0.27.8',
+        'openai==1.3.5',
         'tiktoken==0.5.1',
         'pydantic==2.4.2',
         'numpy==1.24.4'

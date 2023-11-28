@@ -8,7 +8,7 @@ from nimbusagent.functions.parser import (
     param_to_title,
     extract_enum_values,
     extract_description,
-    # import other methods to test
+    # import other methods to tests
 )
 
 

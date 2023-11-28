@@ -6,7 +6,7 @@ from nimbusagent.utils import helper
 
 class TestHelperFunctions(unittest.TestCase):
 
-    @patch("openai.Moderation.create")
+    @patch("openai.resources.Moderations.create")
     def test_is_query_safe(self, mock_moderation_create):
         mock_moderation_create.return_value = {'results': [{'flagged': False}]}
         self.assertTrue(helper.is_query_safe("Is it going to rain today?"))
@@ -14,7 +14,7 @@ class TestHelperFunctions(unittest.TestCase):
         mock_moderation_create.return_value = {'results': [{'flagged': True}]}
         self.assertFalse(helper.is_query_safe("Some unsafe query"))
 
-    @patch("openai.Embedding.create")
+    @patch("openai.resources.Embeddings.create")
     def test_get_embedding(self, mock_embedding_create):
         mock_embedding_create.return_value = {"data": [{"embedding": [0.1, 0.2]}]}
         self.assertEqual(helper.get_embedding("some text"), [0.1, 0.2])
@@ -26,7 +26,7 @@ class TestHelperFunctions(unittest.TestCase):
         self.assertAlmostEqual(helper.cosine_similarity([1, 0], [0, 1]), 1)
         self.assertAlmostEqual(helper.cosine_similarity([1, 0], [1, 0]), 0)
 
-    @patch("api.nimbusagent.utils.helper.get_embedding")
+    @patch("nimbusagent.utils.helper.get_embedding")
     def test_find_similar_embedding_list(self, mock_get_embedding):
         mock_get_embedding.return_value = [0.2, 0.1]
         function_embeddings = [

@@ -1,16 +1,18 @@
 import logging
+import os
 from typing import Union, List
 
-import openai
 from numpy import dot
 from numpy.linalg import norm
+from openai import OpenAI
 
 FUNCTIONS_EMBEDDING_MODEL = "text-embedding-ada-002"
 
 
-def is_query_safe(query: str) -> bool:
+def is_query_safe(query: str, api_key=None) -> bool:
     """Returns True if the query is considered safe, False otherwise."""
-    response = openai.Moderation.create(input=query)
+    client = OpenAI(api_key=api_key if api_key else os.environ["OPENAI_API_KEY"])
+    response = client.moderations.create(input=query)
     result = response.get('results', [{}])[0]
 
     if result.get('flagged', False):
@@ -20,22 +22,22 @@ def is_query_safe(query: str) -> bool:
     return True
 
 
-def get_embedding(text, model=FUNCTIONS_EMBEDDING_MODEL):
+def get_embedding(text, model=FUNCTIONS_EMBEDDING_MODEL, api_key=None):
     try:
         text = text.replace("\n", " ")
-        embedding = openai.Embedding.create(
+        client = OpenAI(api_key=api_key if api_key else os.environ["OPENAI_API_KEY"])
+        embedding = client.embeddings.create(
             input=text,
-            model=model
-        )["data"][0]["embedding"]
+            model=model)["data"][0]["embedding"]
         return embedding
     except Exception as e:
         print(f"An error occurred: {e}")
         return None
 
 
-def cosine_similarity(List1, List2):
+def cosine_similarity(list1, list2):
     """ get cosine similarity of two vector of same dimensions """
-    return 1 - dot(List1, List2) / (norm(List1) * norm(List2))
+    return 1 - dot(list1, list2) / (norm(list1) * norm(list2))
 
 
 def find_similar_embedding_list(query: str, function_embeddings: list, k_nearest_neighbors: int = 1):
