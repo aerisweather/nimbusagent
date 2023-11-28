@@ -28,7 +28,7 @@ class CompletionAgent(BaseAgent):
             self._append_to_chat_history(res.choices[0].message['role'], res.choices[0].message['content'])
             return res.choices[0].message['content']
 
-    def _generate_response(self) -> Optional[Union[openai.ChatCompletion, str]]:
+    def _generate_response(self) -> Optional[Union[openai.types.chat.ChatCompletion, str]]:
         loop = 0
         while loop < self.loops_max:
             loop += 1

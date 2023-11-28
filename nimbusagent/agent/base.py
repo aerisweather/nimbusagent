@@ -129,7 +129,7 @@ class BaseAgent:
             self, messages: list, use_functions: bool = True, function_call: Literal['auto', 'none'] = 'auto',
             stream=False,
             use_secondary_model: bool = False, force_no_functions: bool = False
-    ) -> openai.ChatCompletion:
+    ) -> openai.types.chat.ChatCompletion:
 
         mode_name = self.secondary_model_name if use_secondary_model else self.model_name
 
@@ -170,7 +170,7 @@ class BaseAgent:
         """Appends a new message to the chat history."""
         self.chat_history.append({'role': role, 'content': content})
 
-    def get_last_response(self) -> Optional[Union[openai.ChatCompletion, str]]:
+    def get_last_response(self) -> Optional[Union[openai.types.chat.ChatCompletion, str]]:
         return self.last_response
 
     def get_chat_history(self) -> List[dict]:
