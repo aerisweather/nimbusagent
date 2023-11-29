@@ -5,9 +5,9 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="nimbusagent",
-    version="0.0.1",
+    version="0.0.2",
     author="Lee Huffman",
-    author_email="lhuffman@aerisweather.com",
+    author_email="lee.huffman@vaisala.com",
     description="A Basic LLM agent with basic memory, functions, and moderation support",
     long_description=long_description,
     long_description_content_type="text/markdown",

@@ -49,7 +49,7 @@ class StreamingAgent(BaseAgent):
                         if self.function_handler.always_use:
                             self.function_handler.remove_functions_mappings(self.function_handler.always_use)
 
-                    res = self._create_chat_completion(
+                    stream = self._create_chat_completion(
                         messages=[self.system_message] + self.chat_history.get_chat_history() + self.internal_thoughts,
                         stream=True,
                         use_secondary_model=use_secondary_model,
@@ -62,16 +62,16 @@ class StreamingAgent(BaseAgent):
                     use_secondary_model = False
                     force_no_functions = False
 
-                    for message in res:
-                        if message is None or 'choices' not in message or not message['choices']:
+                    for message in stream:
+                        if message is None or not message.choices or not message.choices[0]:
                             continue
 
                         delta = message.choices[0].delta
-                        if "function_call" in delta:
-                            if "name" in delta.function_call:
-                                func_call["name"] = delta.function_call["name"]
-                            if "arguments" in delta.function_call:
-                                func_call["arguments"] += delta.function_call["arguments"]
+                        if delta.function_call:
+                            if delta.function_call.name:
+                                func_call["name"] = delta.function_call.name
+                            if delta.function_call.arguments:
+                                func_call["arguments"] += delta.function_call.arguments
 
                         if message.choices[0].finish_reason == "function_call":
                             if self.send_events:
@@ -104,7 +104,7 @@ class StreamingAgent(BaseAgent):
                                 if func_results.force_no_functions:
                                     force_no_functions = True
 
-                        content = delta.get("content", None)
+                        content = delta.content
                         if content is not None:
                             has_content = True
                             yield delta.content

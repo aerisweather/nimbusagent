@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Union, List
+from typing import Union, List, Iterable, Any
 
 from numpy import dot
 from numpy.linalg import norm
@@ -12,14 +12,23 @@ FUNCTIONS_EMBEDDING_MODEL = "text-embedding-ada-002"
 def is_query_safe(query: str, api_key=None) -> bool:
     """Returns True if the query is considered safe, False otherwise."""
     client = OpenAI(api_key=api_key if api_key else os.environ["OPENAI_API_KEY"])
-    response = client.moderations.create(input=query)
-    result = response.get('results', [{}])[0]
 
-    if result.get('flagged', False):
-        logging.debug(f"Query '{query}' was flagged by OpenAI's moderation API. {result}")
-        return False
+    try:
+        response = client.moderations.create(input=query)
 
-    return True
+        if response and response.results:
+            result = response.results[0]
+
+            if result and result.flagged:
+                logging.debug(f"Query '{query}' was flagged by OpenAI's moderation API. {result}")
+                return False
+
+        return True
+
+    except Exception as e:
+        logging.error(f"An error occurred while checking query safety: {e}")
+
+    return False
 
 
 def get_embedding(text, model=FUNCTIONS_EMBEDDING_MODEL, api_key=None):
@@ -58,9 +67,14 @@ def find_similar_embedding_list(query: str, function_embeddings: list, k_nearest
     return sorted_distances[:k_nearest_neighbors]
 
 
-def combine_lists_unique(list1: List, set2: Union[List, set]) -> List[any]:
-    new_list = list1.copy()
+def combine_lists_unique(list1: Iterable[Any], set2: Union[Iterable[Any], set]) -> List[Any]:
+    if isinstance(list1, list):
+        new_list = list1.copy()
+    else:
+        new_list = list(list1)  # Convert iterable to list
+
     for item in set2:
         if item not in new_list:
             new_list.append(item)
+
     return new_list
