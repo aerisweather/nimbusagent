@@ -7,10 +7,20 @@ from nimbusagent.agent.base import BaseAgent, HAVING_TROUBLE_MSG
 
 
 class StreamingAgent(BaseAgent):
+    """Agent that streams responses to the user and can hanldle openai function calls.
+    This agent is meant to be used in a streaming context, where the user can see the response as it is generated.
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
     def ask(self, query: str, max_retries: int = 1) -> Generator[str, None, None]:
+        """
+        Ask the agent a question and return a generator that yields the response.
+        :param query:  The query to ask the agent.
+        :param max_retries:  The maximum number of times to retry the query if the AI fails to respond.
+        :return:  A generator that yields the response.
+        """
         if self._needs_moderation(query):
             yield self.moderation_fail_message
             return
@@ -28,8 +38,17 @@ class StreamingAgent(BaseAgent):
         self._append_to_chat_history('assistant', "".join(content_accumulated))
 
     def _generate_streaming_response(self, max_retries: int = 1) -> Generator[str, None, None]:
+        """
+        Generate a response from the AI and return a generator that yields the response.
+        :param max_retries:  The maximum number of times to retry the query if the AI fails to respond.
+        :return:  A generator that yields the response.
+        """
 
         def generate() -> Generator[str, None, None]:
+            """
+            Generate a response from the AI and return a generator that yields the response.
+            :return:  A generator that yields the response.
+            """
             retries = max_retries
 
             def output_post_content(post_content: List[str]):

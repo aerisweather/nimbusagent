@@ -6,10 +6,21 @@ from nimbusagent.agent.base import BaseAgent
 
 
 class CompletionAgent(BaseAgent):
+    """
+    Agent that can handle openai function calls and can generate responsee, without streaming.
+    This agent is meant to be used in a non-streaming context, where the user cannot see the response as it is generated.
+    This means it will take longer to generate a response, as we must wait for openAI to generate and respond.
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+    # noinspection PyUnresolvedReferences
     def ask(self, query: str) -> Optional[str]:
+        """
+        Ask the agent a question and return the response.
+        :param query:  The query to ask the agent.
+        :return:  The response.
+        """
         if self._needs_moderation(query):
             return self.moderation_fail_message
 
@@ -28,7 +39,12 @@ class CompletionAgent(BaseAgent):
             self._append_to_chat_history(res.choices[0].message.role, res.choices[0].message.content)
             return res.choices[0].message.content
 
+    # noinspection PyUnresolvedReferences
     def _generate_response(self) -> Optional[Union[openai.types.chat.ChatCompletion, str]]:
+        """
+        Generate a response object based on the response from the AI
+        :return:  The response object.
+        """
         loop = 0
         while loop < self.loops_max:
             loop += 1

@@ -51,9 +51,12 @@ class BaseAgent:
             send_events: bool = False,
     ):
         """
+        Base Agent Class for Nimbus Agent
+
         Args:
             openai_api_key: the OpenAI API key to use
             model_name: The name of the model to use (default: 'gpt-4-0613')
+            secondary_model_name: The name of the secondary model to use (default: 'gpt-3.5-turbo')
             temperature: The temperature for the response sampling (default: 0.1)
             functions: The list of functions to use (default: None)
             functions_embeddings: The list of function embeddings to use (default: None)
@@ -107,13 +110,26 @@ class BaseAgent:
                                                             functions_always_use, functions_pattern_groups)
 
     def set_system_message(self, message: str) -> None:
-        """Sets the system message."""
+        """Sets the system message.
+        :param message: The system message to set
+        """
         self.system_message = {"role": "system", "content": message}
 
     def _init_function_handler(self, functions: Optional[List], functions_embeddings: Optional[List],
                                functions_k_closest: int = 3,
                                functions_always_use: Optional[List[str]] = None,
                                functions_pattern_groups: Optional[List[dict]] = None) -> FunctionHandler:
+        """Initializes the function handler.
+        Returns a FunctionHandler instance.
+
+        :param functions: The list of functions to use
+        :param functions_embeddings: The list of function embeddings to use
+        :param functions_k_closest: The number of closest functions to use
+        :param functions_always_use: The list of functions to always use
+        :param functions_pattern_groups: The list of function pattern groups to use
+        :return: A FunctionHandler instance
+         """
+
         return FunctionHandler(
             functions=functions,
             embeddings=functions_embeddings,
@@ -125,12 +141,23 @@ class BaseAgent:
             chat_history=self.chat_history
         )
 
+    # noinspection PyUnresolvedReferences
     def _create_chat_completion(
-            self, messages: list, use_functions: bool = True, function_call: Literal['auto', 'none'] = 'auto',
+            self, messages: list, use_functions: bool = True,
+            function_call: Union[str, Literal['auto', 'none']] = 'auto',
             stream=False,
             use_secondary_model: bool = False, force_no_functions: bool = False
     ) -> openai.types.chat.ChatCompletion:
 
+        """Creates a chat completion, streaming or not.
+        :param messages: The messages to use
+        :param use_functions: True if functions should be used
+        :param function_call: The function call to use, 'auto' or 'none' or a function name
+        :param stream: True if streaming should be used
+        :param use_secondary_model: True if the secondary model should be used
+        :param force_no_functions: True if functions should be forced to not be used
+        :return: An openai chat completion
+        """
         mode_name = self.secondary_model_name if use_secondary_model else self.model_name
 
         if use_functions and self.function_handler.functions and not force_no_functions:
@@ -150,7 +177,11 @@ class BaseAgent:
         return res
 
     def _history_needs_moderation(self, history: List[dict]) -> bool:
-        """Handles history moderation."""
+        """Handles history moderation.
+        Returns True if the history contains inappropriate content, False otherwise.
+        :param history: The history to check
+        :return: True if the history contains inappropriate content, False otherwise
+        """
         if not self.perform_moderation or not history:
             return False
 
@@ -159,7 +190,11 @@ class BaseAgent:
         return self._needs_moderation(" ".join(content_list))
 
     def _needs_moderation(self, query: str) -> bool:
-        """Checks if a query requires moderation."""
+        """Checks if a query requires moderation.
+        Returns True if the query requires moderation, False otherwise.
+        :param query: The query to check
+        :return: True if the query requires moderation, False otherwise
+        """
         return self.perform_moderation and not is_query_safe(query)
 
     def _clear_internal_thoughts(self) -> None:
@@ -167,19 +202,32 @@ class BaseAgent:
         self.internal_thoughts = []
 
     def _append_to_chat_history(self, role: str, content: str) -> None:
-        """Appends a new message to the chat history."""
+        """Appends a new message to the chat history.
+        :param role: The role of the message
+        :param content: The content of the message
+        """
         self.chat_history.append({'role': role, 'content': content})
 
+    # noinspection PyUnresolvedReferences
     def get_last_response(self) -> Optional[Union[openai.types.chat.ChatCompletion, str]]:
+        """Returns the last response.
+        :return: The last response
+        """
         return self.last_response
 
     def get_chat_history(self) -> List[dict]:
+        """Returns the chat history.
+        :return: The chat history
+        """
         return self.chat_history.get_chat_history()
 
     def get_functions(self) -> Optional[list]:
+        """
+        Returns the functions.
+        :return: The functions
+        """
         return self.function_handler.functions
 
     def clear_chat_history(self) -> None:
         """Clears the chat history."""
-
         self.chat_history.clear_chat_history()
