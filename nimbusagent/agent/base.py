@@ -158,11 +158,11 @@ class BaseAgent:
         :param force_no_functions: True if functions should be forced to not be used
         :return: An openai chat completion
         """
-        mode_name = self.secondary_model_name if use_secondary_model else self.model_name
+        model_name = self.secondary_model_name if use_secondary_model else self.model_name
 
         if use_functions and self.function_handler.functions and not force_no_functions:
             res = self.client.chat.completions.create(
-                model=mode_name,
+                model=model_name,
                 temperature=self.temperature,
                 messages=messages,
                 functions=self.function_handler.functions,
@@ -170,7 +170,7 @@ class BaseAgent:
                 stream=stream)
         else:
             res = self.client.chat.completions.create(
-                model=mode_name,
+                model=model_name,
                 temperature=self.temperature,
                 messages=messages,
                 stream=stream)

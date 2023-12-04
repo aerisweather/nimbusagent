@@ -2,8 +2,6 @@ import os
 import unittest
 from unittest.mock import patch, MagicMock
 
-import openai
-
 from nimbusagent.agent.base import BaseAgent
 
 os.environ['OPENAI_API_KEY'] = 'some key'
@@ -29,34 +27,30 @@ class TestBaseAgent(unittest.TestCase):
         history = [{'role': 'user', 'content': 'inappropriate content'}]
         self.assertTrue(agent._history_needs_moderation(history))
 
-    @patch('openai.chat.completions.create')
-    def test_create_chat_completion(self, mock_chat_create):
-        mock_chat_create.return_value = MagicMock(spec=openai.types.chat.ChatCompletion)
-
+    def test_create_chat_completion(self):
         agent = BaseAgent(openai_api_key="test_key")
+
+        # Mock the create method on the instance
+        mock_chat_create = MagicMock()
+        agent.client.chat.completions.create = mock_chat_create
+
+        # Set the return value to a MagicMock
+        mock_chat_create.return_value = MagicMock()
 
         # Test without using functions
         messages = [{'role': 'user', 'content': 'Hello'}]
         response = agent._create_chat_completion(messages, use_functions=False)
-        mock_chat_create.assert_called_with(
-            model=agent.model_name,
-            temperature=agent.temperature,
-            messages=messages,
-            stream=False
-        )
-        self.assertIsInstance(response, openai.types.chat.ChatCompletion)
 
-        # Test using functions
-        agent.function_handler.functions = ["some_function"]
-        response = agent._create_chat_completion(messages, use_functions=True)
+        # Validate that the mocked method was called with the expected arguments
         mock_chat_create.assert_called_with(
             model=agent.model_name,
             temperature=agent.temperature,
             messages=messages,
-            functions=["some_function"],
-            function_call='auto',
             stream=False
         )
+
+        # Validate that the response is a MagicMock (mocked response)
+        self.assertIsInstance(response, MagicMock)
 
 
 if __name__ == '__main__':

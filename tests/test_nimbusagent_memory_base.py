@@ -67,6 +67,47 @@ class TestAgentMemory(unittest.TestCase):
         self.assertEqual(memory.get_chat_length(), 1)
         self.assertEqual(memory.get_total_tokens(), 0)
 
+    def test_initialization_with_initial_history(self):
+        initial_history = [{"role": "user", "content": "hello"}, {"role": "agent", "content": "hi"}]
+        memory = AgentMemory(initial_history=initial_history)
+        self.assertEqual(memory.get_chat_length(), 2)
+        self.assertEqual(memory.get_total_tokens(), 2)  # Assuming "hello" and "hi" are 1 token each
+
+    def test_complex_string_tokenization(self):
+        memory = AgentMemory()
+        complex_string = "Hello, world! 😊 こんにちは"
+        token_count = memory.tokenize(complex_string)
+        self.assertGreater(token_count, 1)  # Token count should be more than 1 for a complex string
+
+    def test_adding_multiple_entries(self):
+        memory = AgentMemory(max_tokens=5, max_messages=3)
+        entries = [
+            {"role": "user", "content": "hello"},
+            {"role": "user", "content": "world"},
+            {"role": "agent", "content": "hi"},
+        ]
+        for entry in entries:
+            memory.add_entry(entry)
+        self.assertEqual(memory.get_chat_length(), 3)
+        self.assertLessEqual(memory.get_total_tokens(), 5)
+
+    def test_edge_case_for_token_limit(self):
+        memory = AgentMemory(max_tokens=3)
+        memory.add_entry({"role": "user", "content": "hello world"})  # Assuming this is 3 tokens
+        memory.add_entry({"role": "user", "content": "another message"})  # This should not be added
+        self.assertEqual(memory.get_chat_length(), 1)
+
+    def test_adding_whitespace_entries(self):
+        memory = AgentMemory()
+        memory.add_entry({"role": "user", "content": "   "})
+        self.assertEqual(memory.get_chat_length(), 0)
+
+    def test_get_chat_history_as_text(self):
+        memory = AgentMemory()
+        memory.add_entry({"role": "user", "content": "hello"})
+        text_history = memory.get_chat_history_as_text()
+        self.assertEqual(text_history, "user: hello")
+
 
 if __name__ == '__main__':
     unittest.main()
