@@ -6,10 +6,21 @@ from nimbusagent.agent.base import BaseAgent
 
 
 class CompletionAgent(BaseAgent):
+    """
+    Agent that can handle openai function calls and can generate responsee, without streaming.
+    This agent is meant to be used in a non-streaming context, where the user cannot see the response as it is generated.
+    This means it will take longer to generate a response, as we must wait for openAI to generate and respond.
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+    # noinspection PyUnresolvedReferences
     def ask(self, query: str) -> Optional[str]:
+        """
+        Ask the agent a question and return the response.
+        :param query:  The query to ask the agent.
+        :return:  The response.
+        """
         if self._needs_moderation(query):
             return self.moderation_fail_message
 
@@ -25,10 +36,15 @@ class CompletionAgent(BaseAgent):
             self._append_to_chat_history('function', res)
             return res
         else:
-            self._append_to_chat_history(res.choices[0].message['role'], res.choices[0].message['content'])
-            return res.choices[0].message['content']
+            self._append_to_chat_history(res.choices[0].message.role, res.choices[0].message.content)
+            return res.choices[0].message.content
 
-    def _generate_response(self) -> Optional[Union[openai.ChatCompletion, str]]:
+    # noinspection PyUnresolvedReferences
+    def _generate_response(self) -> Optional[Union[openai.types.chat.ChatCompletion, str]]:
+        """
+        Generate a response object based on the response from the AI
+        :return:  The response object.
+        """
         loop = 0
         while loop < self.loops_max:
             loop += 1
@@ -45,8 +61,8 @@ class CompletionAgent(BaseAgent):
             if finish_reason == 'stop' or len(self.internal_thoughts) > self.internal_thoughts_max_entries:
                 return res
             elif finish_reason == 'function_call':
-                func_name = res['choices'][0]['message']['function_call']['name']
-                args_str = res['choices'][0]['message']['function_call']['arguments']
+                func_name = res.choices[0].message.function_call.name
+                args_str = res.choices[0].message.function_call.arguments
                 func_results = self.function_handler.handle_function_call(func_name, args_str)
 
                 if func_results:
@@ -56,8 +72,8 @@ class CompletionAgent(BaseAgent):
                     if 'internal_thought' in func_results:
                         self.internal_thoughts.append(func_results['internal_thought'])
 
-                    if func_results.get('send_directly_to_user') and func_results.get('content'):
-                        return func_results['content']
+                    if func_results.send_directly_to_user and func_results.content:
+                        return func_results.content
             else:
                 raise ValueError(f"Unexpected finish reason: {finish_reason}")
 

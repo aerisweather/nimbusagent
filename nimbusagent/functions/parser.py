@@ -6,6 +6,16 @@ import typing
 
 
 def type_mapping(dtype):
+    """
+    Maps a Python type to a JSON Schema type. If the type is a List, it will return the container type and the
+    item type. If the type is not recognized, it will default to string. If the type is a Literal, it will return
+    the Literal values as an enum. If the type is an Enum, it will return the Enum values as an enum. If the type
+    is a List of Enum or Literal, it will return the values of the Enum or Literal as an enum. If the type is a
+    List of a type that is not recognized, it will default to string.
+    :param dtype:  The Python type to map.
+    :return:  A tuple containing the container type and the item type. If the type is not a container, the container
+            type will be None.
+    """
     type_map = {
         float: "number",
         int: "integer",
@@ -22,6 +32,15 @@ def type_mapping(dtype):
 
 
 def extract_params(doc_str: str):
+    """
+    Extracts the parameters from a doc string. The doc string must be in the format of the Google style doc string. See
+    https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html for more information.
+    :param doc_str:  The doc string to extract the parameters from. Must be in the format of the Google style doc
+                    string.
+    :return:  A dictionary containing the parameters and their descriptions. The keys are the parameter names and the
+            values are the descriptions. If there is no description, the value will be an empty string. If there is
+            no doc string, the dictionary will be empty.
+    """
     # split doc string by newline, skipping empty lines
     params_str = [line for line in doc_str.split("\n") if line.strip()]
 
@@ -63,11 +82,20 @@ def extract_params(doc_str: str):
 
 
 def param_to_title(param_name: str) -> str:
-    """Converts a parameter name to title format."""
+    """Converts a parameter name to title format.
+    :param param_name:  The parameter name to convert.
+    :return:  The converted parameter name.
+    """
     return param_name.replace('_', ' ').title()
 
 
 def extract_enum_values(dtype) -> typing.Optional[typing.List[str]]:
+    """
+    Extracts the values of an Enum or Literal type. If the type is not an Enum or Literal, it will return None.
+    :param dtype:  The type to extract the values from.
+    :return:  A list of the values of the Enum or Literal type. If the type is not an Enum or Literal, it will return
+            None. If the type is a List of Enum or Literal, it will return the values of the Enum or Literal as a list.
+    """
     # Check if it's an Enum type
     if dtype.__class__.__name__ == 'EnumMeta':
         return [e.value for e in dtype]
@@ -90,6 +118,15 @@ def extract_enum_values(dtype) -> typing.Optional[typing.List[str]]:
 
 
 def extract_description(func_doc):
+    """
+    Extracts the description from a doc string. The doc string must be in the format of the Google style doc string. See
+    https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html for more information.
+    :param func_doc:  The doc string to extract the description from. Must be in the format of the Google style doc
+                    string.
+    :return:  The description of the doc string. If there is no description, it will return an empty string. If there
+            is no doc string, it will return an empty string. If the doc string is not in the Google style format, it
+            will return an empty string.
+    """
     lines = func_doc.split("\n")
     description_lines = []
 
@@ -102,7 +139,11 @@ def extract_description(func_doc):
 
 
 def func_metadata(obj):
-    """Extracts metadata from a function or a class with a call method."""
+    """Extracts metadata from a function or a class with a call method. The metadata is in the format of the OpenAPI
+        specification. See https://swagger.io/specification/ for more information.
+    :param obj:  The function or class to extract the metadata from.
+    :return:  A dictionary containing the metadata.
+    """
 
     if isinstance(obj, type):  # If it's a class
         method_to_use = getattr(obj, 'method_name', 'call')
@@ -146,7 +187,12 @@ def func_metadata(obj):
 
 
 def build_params(argspec, fixed_args, param_details):
-    """Builds parameters metadata."""
+    """Builds parameters metadata. This is a helper function for func_metadata.
+    :param argspec:  The argspec of the function.
+    :param fixed_args:  The fixed arguments of the function.
+    :param param_details:  The parameter details extracted from the doc string.
+    :return:  A dictionary containing the parameters metadata.
+    """
     params = {}
     for param_name, param_annotation in argspec.annotations.items():
         if param_name not in fixed_args.keys() and param_name != 'self':
@@ -172,7 +218,11 @@ def build_params(argspec, fixed_args, param_details):
 
 
 def determine_required_parameters(argspec, fixed_args):
-    """Determines the required parameters."""
+    """Determines the required parameters. This is a helper function for func_metadata.
+    :param argspec:  The argspec of the function.
+    :param fixed_args:  The fixed arguments of the function.
+    :return:  A list of the required parameters.
+    """
     _required = [i for i in argspec.args if i not in fixed_args.keys() and i != 'self']
 
     if argspec.defaults:

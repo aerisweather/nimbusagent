@@ -5,9 +5,9 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="nimbusagent",
-    version="0.0.1",
+    version="0.1.0",
     author="Lee Huffman",
-    author_email="lhuffman@aerisweather.com",
+    author_email="lee.huffman@vaisala.com",
     description="A Basic LLM agent with basic memory, functions, and moderation support",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -18,9 +18,9 @@ setup(
     license="MIT",
     packages=find_packages(),
     install_requires=[
-        'openai==0.27.8',
-        'tiktoken==0.5.1',
-        'pydantic==2.4.2',
-        'numpy==1.24.4'
+        'openai=>1.3.5',
+        'tiktoken=>0.5.1',
+        'pydantic=>2.4.2',
+        'numpy=>1.24.4'
     ]
 )

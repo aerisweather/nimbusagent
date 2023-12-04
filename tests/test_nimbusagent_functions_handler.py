@@ -1,7 +1,10 @@
+import os
 import unittest
 from unittest.mock import patch, Mock
 
 from nimbusagent.functions.handler import FunctionHandler
+
+os.environ['OPENAI_API_KEY'] = "test"
 
 
 class TestFunctionHandler(unittest.TestCase):
@@ -10,11 +13,12 @@ class TestFunctionHandler(unittest.TestCase):
         # Initialize FunctionHandler or other required objects here
         self.handler = FunctionHandler()
 
+
     def test_initialization(self):
         # Test if FunctionHandler initializes properly
         self.assertIsNotNone(self.handler)
 
-    @patch("api.nimbusagent.functions.handler.parser.func_metadata")
+    @patch("nimbusagent.functions.handler.parser.func_metadata")
     def test_parse_functions(self, mock_func_metadata):
         mock_func_metadata.return_value = {"mock": "data"}
         result = self.handler.parse_functions([Mock()])

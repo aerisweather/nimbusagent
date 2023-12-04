@@ -7,10 +7,20 @@ from nimbusagent.agent.base import BaseAgent, HAVING_TROUBLE_MSG
 
 
 class StreamingAgent(BaseAgent):
+    """Agent that streams responses to the user and can hanldle openai function calls.
+    This agent is meant to be used in a streaming context, where the user can see the response as it is generated.
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
     def ask(self, query: str, max_retries: int = 1) -> Generator[str, None, None]:
+        """
+        Ask the agent a question and return a generator that yields the response.
+        :param query:  The query to ask the agent.
+        :param max_retries:  The maximum number of times to retry the query if the AI fails to respond.
+        :return:  A generator that yields the response.
+        """
         if self._needs_moderation(query):
             yield self.moderation_fail_message
             return
@@ -28,8 +38,17 @@ class StreamingAgent(BaseAgent):
         self._append_to_chat_history('assistant', "".join(content_accumulated))
 
     def _generate_streaming_response(self, max_retries: int = 1) -> Generator[str, None, None]:
+        """
+        Generate a response from the AI and return a generator that yields the response.
+        :param max_retries:  The maximum number of times to retry the query if the AI fails to respond.
+        :return:  A generator that yields the response.
+        """
 
         def generate() -> Generator[str, None, None]:
+            """
+            Generate a response from the AI and return a generator that yields the response.
+            :return:  A generator that yields the response.
+            """
             retries = max_retries
 
             def output_post_content(post_content: List[str]):
@@ -49,7 +68,7 @@ class StreamingAgent(BaseAgent):
                         if self.function_handler.always_use:
                             self.function_handler.remove_functions_mappings(self.function_handler.always_use)
 
-                    res = self._create_chat_completion(
+                    stream = self._create_chat_completion(
                         messages=[self.system_message] + self.chat_history.get_chat_history() + self.internal_thoughts,
                         stream=True,
                         use_secondary_model=use_secondary_model,
@@ -62,16 +81,16 @@ class StreamingAgent(BaseAgent):
                     use_secondary_model = False
                     force_no_functions = False
 
-                    for message in res:
-                        if message is None or 'choices' not in message or not message['choices']:
+                    for message in stream:
+                        if message is None or not message.choices or not message.choices[0]:
                             continue
 
                         delta = message.choices[0].delta
-                        if "function_call" in delta:
-                            if "name" in delta.function_call:
-                                func_call["name"] = delta.function_call["name"]
-                            if "arguments" in delta.function_call:
-                                func_call["arguments"] += delta.function_call["arguments"]
+                        if delta.function_call:
+                            if delta.function_call.name:
+                                func_call["name"] = delta.function_call.name
+                            if delta.function_call.arguments:
+                                func_call["arguments"] += delta.function_call.arguments
 
                         if message.choices[0].finish_reason == "function_call":
                             if self.send_events:
@@ -104,7 +123,7 @@ class StreamingAgent(BaseAgent):
                                 if func_results.force_no_functions:
                                     force_no_functions = True
 
-                        content = delta.get("content", None)
+                        content = delta.content
                         if content is not None:
                             has_content = True
                             yield delta.content
