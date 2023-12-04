@@ -1,0 +1,49 @@
+[project]
+name = "nimbusagent"
+version = "0.1.0"
+description = "An OpenAI agent with basic memory, functions, and moderation support"
+readme = "README.md"
+license = { file = "LICENSE.txt" }
+keywords = [
+    "openai",
+    "gpt3",
+    "gpt3.5",
+    "gpt4",
+    "ai"
+]
+authors = [
+    { name = "Lee Huffman" }
+]
+dependencies = [
+    'openai>=1.3.5',
+    'tiktoken==0.5.1',
+    'pydantic==2.4.2',
+    'numpy==1.24.4'
+]
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+    "Operating System :: POSIX",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+homepage = "https://github.com/aerisweather/nimbusagent"
+repository = "https://github.com/aerisweather/nimbusagent"
+
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
