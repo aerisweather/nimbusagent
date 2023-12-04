@@ -78,7 +78,7 @@ class AgentMemory:
             self.num_tokens -= self.token_counts.pop(0)
             self.chat_history.pop(0)
 
-    def get_chat_history(self) -> List[dict]:
+    def get_chat_history(self) -> List[Dict[str, str]]:
         """
         Get the chat history.
         :return:  The chat history.
@@ -91,16 +91,6 @@ class AgentMemory:
         :return:  The chat history as text, in "role: content" format.
         """
         return "\n".join([f"{entry['role']}: {entry['content']}" for entry in self.chat_history])
-
-    # noinspection PyRedeclaration
-    def clear_chat_history(self):
-        """
-        Clear the chat history.
-        :return:
-        """
-        self.chat_history = []
-        self.token_counts = []
-        self.num_tokens = 0
 
     def set_chat_history(self, new_history: List[Dict[str, str]]):
         """

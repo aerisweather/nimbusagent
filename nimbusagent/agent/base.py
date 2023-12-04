@@ -1,5 +1,5 @@
 import os
-from typing import Optional, List, Union, Literal
+from typing import Optional, List, Union, Literal, Dict
 
 import openai
 from openai import OpenAI
@@ -34,7 +34,7 @@ class BaseAgent:
             functions_k_closest: int = 3,
 
             system_message: str = SYS_MSG,
-            message_history: Optional[List[dict]] = None,
+            message_history: Optional[List[Dict[str, str]]] = None,
 
             calling_function_start_callback: Optional[callable] = None,
             calling_function_stop_callback: Optional[callable] = None,
@@ -176,7 +176,7 @@ class BaseAgent:
                 stream=stream)
         return res
 
-    def _history_needs_moderation(self, history: List[dict]) -> bool:
+    def _history_needs_moderation(self, history: List[Dict[str, str]]) -> bool:
         """Handles history moderation.
         Returns True if the history contains inappropriate content, False otherwise.
         :param history: The history to check
@@ -215,7 +215,7 @@ class BaseAgent:
         """
         return self.last_response
 
-    def get_chat_history(self) -> List[dict]:
+    def get_chat_history(self) -> List[Dict[str, str]]:
         """Returns the chat history.
         :return: The chat history
         """
