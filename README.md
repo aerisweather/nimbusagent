@@ -217,6 +217,7 @@ from the agent.
 
 - [ ] Add support for Azure OpenAI API
 - [ ] Add support for OpenAI Assistant API
+- [ ] Add Function call examples
 
 ## Stay Updated
 
