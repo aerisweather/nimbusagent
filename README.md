@@ -213,6 +213,11 @@ from the agent.
 
 - NimbusAgent is released under the MIT License See the LICENSE file for more details.
 
+## Todo
+
+- [ ] Add support for Azure OpenAI API
+- [ ] Add support for OpenAI Assistant API
+
 ## Stay Updated
 
 - Follow our GitHub repository to stay updated with new releases and changes.
