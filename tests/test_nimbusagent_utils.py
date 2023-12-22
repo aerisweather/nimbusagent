@@ -83,9 +83,31 @@ class TestHelperFunctions(unittest.TestCase):
 
     @patch("openai.resources.Embeddings.create")
     def test_get_embedding(self, mock_embedding_create):
-        mock_embedding_create.return_value = {"data": [{"embedding": [0.1, 0.2]}]}
+        # First part of the test
+        embedding = openai.types.Embedding(
+            embedding=[0.1, 0.2],
+            index=0,
+            object="embedding"
+        )
+
+        mock_embedding_create.return_value = openai.types.CreateEmbeddingResponse(
+            id="emb-123",
+            model="text-embedding-ada-002",
+            object="list",
+            data=[embedding],
+            usage=openai.types.create_embedding_response.Usage(
+                prompt_tokens=0,
+                total_tokens=0
+            )
+        )
+
+        # {"data": [{"embedding": [0.1, 0.2]}]}
         self.assertEqual(helper.get_embedding("some text"), [0.1, 0.2])
 
+        # Reset the mock
+        mock_embedding_create.reset_mock()
+
+        # Second part of the test
         mock_embedding_create.side_effect = Exception("Some error")
         self.assertIsNone(helper.get_embedding("some text"))
 
@@ -119,6 +141,30 @@ class TestHelperFunctions(unittest.TestCase):
         # If your function can handle tuples, check the resulting list
         # If not, you might use `self.assertRaises(TypeError, helper.combine_lists_unique, list1, set2)`
         self.assertEqual(result, [1, 2, 3, 4])  # Adjust this assertion based on your expected behavior
+
+    @patch("nimbusagent.utils.helper.get_embedding")
+    def test_find_similar_embedding_list_with_none_embeddings(self, mock_get_embedding):
+        # noinspection PyTypeChecker
+        result = helper.find_similar_embedding_list("some query", None)
+        self.assertIsNone(result)
+
+    @patch("nimbusagent.utils.helper.get_embedding")
+    def test_find_similar_embedding_list_with_empty_embeddings(self, mock_get_embedding):
+        result = helper.find_similar_embedding_list("some query", [])
+        self.assertIsNone(result)
+
+    @patch("nimbusagent.utils.helper.get_embedding")
+    def test_find_similar_embedding_list_with_empty_query(self, mock_get_embedding):
+        function_embeddings = [{'name': 'func1', 'embedding': [0.2, 0.1]}]
+        result = helper.find_similar_embedding_list("", function_embeddings)
+        self.assertIsNone(result)
+
+    @patch("nimbusagent.utils.helper.get_embedding")
+    def test_find_similar_embedding_list_get_embedding_returns_none(self, mock_get_embedding):
+        mock_get_embedding.return_value = None
+        function_embeddings = [{'name': 'func1', 'embedding': [0.2, 0.1]}]
+        result = helper.find_similar_embedding_list("some query", function_embeddings)
+        self.assertIsNone(result)
 
 
 if __name__ == '__main__':

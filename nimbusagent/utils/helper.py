@@ -47,8 +47,8 @@ def get_embedding(text, model=FUNCTIONS_EMBEDDING_MODEL, api_key=None):
         client = OpenAI(api_key=api_key if api_key else os.environ["OPENAI_API_KEY"])
         embedding = client.embeddings.create(
             input=text,
-            model=model)["data"][0]["embedding"]
-        return embedding
+            model=model)
+        return embedding.data[0].embedding
     except Exception as e:
         print(f"An error occurred: {e}")
         return None
@@ -70,10 +70,12 @@ def find_similar_embedding_list(query: str, function_embeddings: list, k_nearest
     :param k_nearest_neighbors: The number of nearest neighbors to return.
     :return: The k function descriptions most similar (least cosine distance) to given query
     """
-    if not function_embeddings:
+    if not function_embeddings or len(function_embeddings) == 0 or not query:
         return None
 
     query_embedding = get_embedding(query)
+    if not query_embedding:
+        return None
 
     distances = []
     for function_embedding in function_embeddings:
