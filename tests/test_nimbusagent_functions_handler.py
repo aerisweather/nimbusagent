@@ -13,7 +13,6 @@ class TestFunctionHandler(unittest.TestCase):
         # Initialize FunctionHandler or other required objects here
         self.handler = FunctionHandler()
 
-
     def test_initialization(self):
         # Test if FunctionHandler initializes properly
         self.assertIsNotNone(self.handler)

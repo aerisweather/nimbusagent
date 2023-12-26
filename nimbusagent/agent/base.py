@@ -32,6 +32,7 @@ class BaseAgent:
             functions_always_use: Optional[List[str]] = None,
             functions_pattern_groups: Optional[List[dict]] = None,
             functions_k_closest: int = 3,
+            use_tool_calls: bool = True,
 
             system_message: str = SYS_MSG,
             message_history: Optional[List[Dict[str, str]]] = None,
@@ -46,7 +47,7 @@ class BaseAgent:
             memory_max_tokens: int = 2000,
 
             internal_thoughts_max_entries: int = 8,
-            loops_max: int = 8,
+            loops_max: int = 10,
 
             send_events: bool = False,
     ):
@@ -63,6 +64,9 @@ class BaseAgent:
             functions_pattern_groups: The list of function pattern groups to use (default: None)
             functions_k_closest: The number of closest functions to use (default: 3)
             functions_always_use: The list of functions to always use (default: None)
+            use_tool_calls: True if parallel functions should be allowed (default: True). Functions are being
+                            deprecated though tool_calls are still a bit beta, so for now this can be set to
+                            False to continue using function calls.
             system_message: The message to send to the user when the agent starts
                             (default: "You are a helpful assistant.")
             message_history: The message history to use (default: None)
@@ -108,6 +112,7 @@ class BaseAgent:
 
         self.function_handler = self._init_function_handler(functions, functions_embeddings, functions_k_closest,
                                                             functions_always_use, functions_pattern_groups)
+        self.use_tool_calls = use_tool_calls
 
     def set_system_message(self, message: str) -> None:
         """Sets the system message.
@@ -161,13 +166,22 @@ class BaseAgent:
         model_name = self.secondary_model_name if use_secondary_model else self.model_name
 
         if use_functions and self.function_handler.functions and not force_no_functions:
-            res = self.client.chat.completions.create(
-                model=model_name,
-                temperature=self.temperature,
-                messages=messages,
-                functions=self.function_handler.functions,
-                function_call=function_call,
-                stream=stream)
+            if self.use_tool_calls:
+                res = self.client.chat.completions.create(
+                    model=model_name,
+                    temperature=self.temperature,
+                    messages=messages,
+                    tools=self.function_handler.functions_to_tools(),
+                    tool_choice=function_call,
+                    stream=stream)
+            else:
+                res = self.client.chat.completions.create(
+                    model=model_name,
+                    temperature=self.temperature,
+                    messages=messages,
+                    functions=self.function_handler.functions,
+                    function_call=function_call,
+                    stream=stream)
         else:
             res = self.client.chat.completions.create(
                 model=model_name,

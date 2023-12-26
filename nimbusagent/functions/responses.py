@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Dict
 
 from pydantic import BaseModel
 
@@ -18,6 +18,8 @@ class FuncResponse(BaseModel):
     :param use_secondary_model:  Whether to use the secondary model.
     :param force_no_functions:  Whether to force no functions.
     """
+    name: str = None
+    arguments: str = None
     content: str = None
     summarize_only: bool = False
     send_directly_to_user: bool = False
@@ -26,79 +28,23 @@ class FuncResponse(BaseModel):
     use_secondary_model: bool = False
     force_no_functions: bool = False
 
-    def to_internal_response(self, func_name: str, args_str: str = None):
-        """
-        Convert this response to an internal response.
-        :param func_name:  The name of the function.
-        :param args_str:  The arguments of the function.
-        :return:  The internal response.
-        """
-        if not self.content:
-            return None
 
-        asst_thought_content = f"#{func_name}"
-        if args_str:
-            args_str = args_str.replace("\n", " ")
-            asst_thought_content += f"({args_str})"
-        else:
-            asst_thought_content += "()"
-        internal_asst_thought = {'role': 'assistant', 'content': asst_thought_content}
-        internal_msg = {'role': 'function', 'name': func_name, 'content': self.content}
-        return InternalFuncResponse(content=self.content, send_directly_to_user=self.send_directly_to_user,
-                                    internal_thought=internal_msg,
-                                    assistant_thought=internal_asst_thought,
-                                    post_content=self.post_content,
-                                    stream_data=self.stream_data,
-                                    use_secondary_model=self.use_secondary_model,
-                                    force_no_functions=self.force_no_functions)
-
-
-class InternalFuncResponse(FuncResponse):
-    """
-    An internal response from a function. This is the response that is returned from a function call. It contains the
-    content of the response, whether to send the response directly to the user, the content to post to the chat history,
-    the data to stream to the user, whether to use the secondary model, and whether to force no functions.
-    :param content:  The content of the response.
-    :param send_directly_to_user:  Whether to send the response directly to the user.
-    :param post_content:  The content to post to the chat history.
-    :param stream_data:  The data to stream to the user.
-    :param use_secondary_model:  Whether to use the secondary model.
-    :param force_no_functions:  Whether to force no functions.
-    """
-    internal_thought: dict = None
-    assistant_thought: dict = None
-
-
-class DictFuncResponse:
+class DictFuncResponse(FuncResponse):
     """
     A response from a function. This is the response that is returned from a function call. It contains the content of
     the response, whether to only summarize the content, whether to send the response directly to the user, the content
     to post to the chat history, the data to stream to the user, whether to use the secondary model, and whether to
     force no functions.
     """
-    def __init__(self, data: dict):
-        self.data = data
+    data: Dict = None
 
-    def to_internal_response(self, func_name: str):
-        """
-        Convert this response to an internal response.
-        :param func_name:  The name of the function.
-        :return:  The internal response.
-        """
-        content, send_directly_to_user, post_content, stream_data, use_secondary_model, force_no_functions = (
-            self.data.get('content', ''),
-            self.data.get('send_directly_to_user', False),
-            self.data.get('post_content', None),
-            self.data.get('data', None),
-            self.data.get('use_secondary_model', False),
-            self.data.get('force_no_functions', False)
-        )
-        if not content:
-            return None
-        res_msg = {'role': 'function', 'name': func_name, 'content': content}
-        return InternalFuncResponse(content=content, send_directly_to_user=send_directly_to_user,
-                                    internal_thought=res_msg,
-                                    post_content=post_content,
-                                    stream_data=stream_data,
-                                    use_secondary_model=use_secondary_model,
-                                    force_no_functions=force_no_functions)
+    def __init__(self, init_data: Dict):
+        super().__init__()
+        self.data = init_data
+        self.content = init_data.get('content', '')
+        self.summarize_only = init_data.get('summarize_only', False)
+        self.send_directly_to_user = init_data.get('send_directly_to_user', False)
+        self.post_content = init_data.get('post_content', None)
+        self.stream_data = init_data.get('stream_data', None)
+        self.use_secondary_model = init_data.get('use_secondary_model', False)
+        self.force_no_functions = init_data.get('force_no_functions', False)

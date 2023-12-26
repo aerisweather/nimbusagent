@@ -60,6 +60,7 @@ class StreamingAgent(BaseAgent):
             post_content_items = []
             use_secondary_model = False
             force_no_functions = False
+            tool_calls = []
             while loops < self.loops_max:
                 loops += 1
                 has_content = False
@@ -86,13 +87,92 @@ class StreamingAgent(BaseAgent):
                             continue
 
                         delta = message.choices[0].delta
-                        if delta.function_call:
+                        if not delta:
+                            break
+
+                        if delta.tool_calls:
+                            tool_call = delta.tool_calls[0]
+                            index = tool_call.index
+                            if index == len(tool_calls):
+                                tool_calls.append({
+                                    "id": None,
+                                    "type": "function",
+                                    "function": {
+                                        "name": "",
+                                        "arguments": "",
+                                    }
+                                })
+
+                            if tool_call.id:
+                                tool_calls[index]['id'] = tool_call.id
+                            if tool_call.function:
+                                if tool_call.function.name:
+                                    tool_calls[index]['function']['name'] = tool_call.function.name
+                                if tool_call.function.arguments:
+                                    tool_calls[index]['function']['arguments'] += tool_call.function.arguments
+
+                        elif delta.function_call:
                             if delta.function_call.name:
                                 func_call["name"] = delta.function_call.name
                             if delta.function_call.arguments:
                                 func_call["arguments"] += delta.function_call.arguments
 
-                        if message.choices[0].finish_reason == "function_call":
+                        finish_reason = message.choices[0].finish_reason
+
+                        if finish_reason == "tool_calls":
+                            self.internal_thoughts.append({
+                                "role": "assistant",
+                                'content': None,
+                                'tool_calls': tool_calls
+                            })
+
+                            if self.send_events:
+                                for tool_call in tool_calls:
+                                    json_data = json.dumps(tool_call)
+                                    yield f"[[[function:{tool_call['name']}:{json_data}]]]"
+
+                            # Handle tool calls
+                            logging.info("Handling tool calls: %s", tool_calls)
+                            content_send_directly_to_user = []
+
+                            for tool_call in tool_calls:
+                                func_name = tool_call['function']["name"]
+                                if func_name is None:
+                                    continue
+
+                                func_args = tool_call['function']["arguments"]
+                                func_results = self.function_handler.handle_function_call(func_name, func_args)
+                                if func_results is not None:
+                                    if func_results.stream_data and self.send_events:
+                                        for key, value in func_results.stream_data.items():
+                                            json_value = json.dumps(value)
+                                            yield f"[[[data:{key}:{json_value}]]]"
+
+                                    if func_results.send_directly_to_user and func_results.content:
+                                        content_send_directly_to_user.append(func_results.content)
+                                        continue
+
+                                    if func_results.content:
+                                        self.internal_thoughts.append({
+                                            'tool_call_id': tool_call['id'],
+                                            "role": "tool",
+                                            'name': func_name,
+                                            'content': func_results.content
+                                        })
+
+                                    if func_results.use_secondary_model:
+                                        use_secondary_model = True
+                                    if func_results.force_no_functions:
+                                        force_no_functions = True
+
+                            if content_send_directly_to_user:
+                                yield "\n".join(content_send_directly_to_user)
+                                yield output_post_content(post_content_items)
+                                return
+
+                            tool_calls = []  # reset tool calls
+
+                        elif finish_reason == "function_call":
                             if self.send_events:
                                 json_data = json.dumps(self.function_handler.get_args(func_call['arguments']))
                                 yield f"[[[function:{func_call['name']}:{json_data}]]]"
@@ -112,10 +192,22 @@ class StreamingAgent(BaseAgent):
                                     yield output_post_content(post_content_items)
                                     return
 
-                                if func_results.assistant_thought:
-                                    self.internal_thoughts.append(func_results.assistant_thought)
-                                if func_results.internal_thought:
-                                    self.internal_thoughts.append(func_results.internal_thought)
+                                # Add the function call to the internal thoughts so the AI knows it called it
+                                self.internal_thoughts.append({
+                                    "role": "assistant",
+                                    'content': None,
+                                    'function_call': {
+                                        'name': func_call['name'],
+                                        'arguments': func_call['arguments']
+                                    }
+                                })
+
+                                self.internal_thoughts.append({
+                                    "role": "function",
+                                    'content': func_results.content,
+                                    'name': func_call['name']
+                                })
+
                                 if func_results.post_content:
                                     post_content_items.append(func_results.post_content)
                                 if func_results.use_secondary_model:
