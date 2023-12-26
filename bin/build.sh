@@ -10,6 +10,10 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+# Clean out the dist directory
+echo "Cleaning out the dist directory..."
+rm -rf ../dist/*
+
 # Build the package
 python -m build ../
 
