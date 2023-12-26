@@ -7,9 +7,10 @@ from dataclasses import dataclass
 from typing import Optional, List, Dict, Any, Union, Callable, Type, Tuple
 
 import tiktoken
+from openai.types.chat import ChatCompletionToolParam
 
 from nimbusagent.functions import parser
-from nimbusagent.functions.responses import FuncResponse, InternalFuncResponse, DictFuncResponse
+from nimbusagent.functions.responses import FuncResponse, DictFuncResponse
 from nimbusagent.memory.base import AgentMemory
 from nimbusagent.utils.helper import find_similar_embedding_list, combine_lists_unique
 
@@ -75,6 +76,20 @@ class FunctionHandler:
 
         self.calling_function_start_callback = calling_function_start_callback
         self.calling_function_stop_callback = calling_function_stop_callback
+
+    def functions_to_tools(self) -> List[ChatCompletionToolParam]:
+        """
+        Convert the functions defs to the new OpenAI tools format.
+        :return:  The tools.
+        """
+        tools = []
+        for func in self.functions:
+            tools.append({
+                "type": "function",
+                "function": func
+            })
+
+        return tools
 
     def _get_function_info(self, func_name: str) -> Optional[FunctionInfo]:
         """
@@ -171,39 +186,38 @@ class FunctionHandler:
         if not self.orig_functions:
             return None
 
-        # Step 1: Initialize with 'always_use' functions
-        actual_function_names = self.always_use if self.always_use else []
-        # print("actual_function_names: ", actual_function_names)
+        if not self.pattern_groups and not self.embeddings:
+            actual_function_names = self.orig_functions.keys()
 
-        # step 2: Add functions based on pattern groups on query
-        query_group_functions = self._get_group_function(query)
-        if query_group_functions:
-            actual_function_names = combine_lists_unique(actual_function_names, query_group_functions)
-            # print("query_group_functions: ", query_group_functions)
+        else:
+            # Step 1: Initialize with 'always_use' functions
+            actual_function_names = self.always_use if self.always_use else []
             # print("actual_function_names: ", actual_function_names)
 
-        # step 3: Add functions based on embeddings
-        recent_history_and_query = [message['content'] for message in history[-2:]] + [query]
-        recent_history_and_query_str = " ".join(recent_history_and_query)
+            # step 2: Add functions based on pattern groups on query
+            query_group_functions = self._get_group_function(query)
+            if query_group_functions:
+                actual_function_names = combine_lists_unique(actual_function_names, query_group_functions)
 
-        if self.embeddings:
-            similar_functions = find_similar_embedding_list(recent_history_and_query_str,
-                                                            function_embeddings=self.embeddings,
-                                                            k_nearest_neighbors=self.k_nearest)
-            similar_function_names = [d['name'] for d in similar_functions]
-            if similar_function_names:
-                actual_function_names = combine_lists_unique(actual_function_names, similar_function_names)
-                # print("similar_function_names: ", similar_function_names)
-                # print("actual_function_names: ", actual_function_names)
+            # step 3: Add functions based on embeddings
+            recent_history_and_query = [message['content'] for message in history[-2:]] + [query]
+            recent_history_and_query_str = " ".join(recent_history_and_query)
 
-        # step 4: Add functions based on pattern groups on history
-        query_group_functions = self._get_group_function(recent_history_and_query_str)
-        if query_group_functions:
-            actual_function_names = combine_lists_unique(actual_function_names, query_group_functions)
-            # print("history_group_functions: ", query_group_functions)
+            if self.embeddings:
+                similar_functions = find_similar_embedding_list(recent_history_and_query_str,
+                                                                function_embeddings=self.embeddings,
+                                                                k_nearest_neighbors=self.k_nearest)
+                similar_function_names = [d['name'] for d in similar_functions]
+                if similar_function_names:
+                    actual_function_names = combine_lists_unique(actual_function_names, similar_function_names)
 
-        logging.info(f"Functions to use: {actual_function_names}")
-        # step 5: step through functions and get the function info, adding up to max_tokens
+            # step 4: Add functions based on pattern groups on history
+            query_group_functions = self._get_group_function(recent_history_and_query_str)
+            if query_group_functions:
+                actual_function_names = combine_lists_unique(actual_function_names, query_group_functions)
+
+            logging.info(f"Functions to use: {actual_function_names}")
+            # step 5: step through functions and get the function info, adding up to max_tokens
 
         processed_functions = []
         token_count = 0
@@ -282,7 +296,7 @@ class FunctionHandler:
         else:
             raise ValueError(f"Unsupported item {item}")
 
-    def handle_function_call(self, func_name: str, args_str: str) -> Optional[InternalFuncResponse]:
+    def handle_function_call(self, func_name: str, args_str: str) -> Optional[FuncResponse]:
         """
         Handle a function call.  This method will call the function and return the result.  If the result is a
                 FuncResponse, it will be returned as is.  If the result is a dictionary, it will be converted to a
@@ -304,7 +318,10 @@ class FunctionHandler:
         else:
             response_obj = DictFuncResponse(result)
 
-        return response_obj.to_internal_response(func_name, args_str)
+        response_obj.name = func_name
+        response_obj.arguments = args_str
+
+        return response_obj
 
     @staticmethod
     def _execute_method(item: Any, method_name: str, args: Dict[str, Any]) -> Any:

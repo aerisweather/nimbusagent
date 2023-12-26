@@ -8,9 +8,11 @@ from nimbusagent.agent.base import BaseAgent
 class CompletionAgent(BaseAgent):
     """
     Agent that can handle openai function calls and can generate responsee, without streaming.
-    This agent is meant to be used in a non-streaming context, where the user cannot see the response as it is generated.
+    This agent is meant to be used in a non-streaming context, where the user cannot see the
+    response as it is generated.
     This means it will take longer to generate a response, as we must wait for openAI to generate and respond.
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -56,24 +58,61 @@ class CompletionAgent(BaseAgent):
             res = self._create_chat_completion(
                 [self.system_message] + self.chat_history.get_chat_history() + self.internal_thoughts
             )
-            finish_reason = res.choices[0].finish_reason
 
+            finish_reason = res.choices[0].finish_reason
             if finish_reason == 'stop' or len(self.internal_thoughts) > self.internal_thoughts_max_entries:
                 return res
+            elif finish_reason == 'tool_calls':
+                message = res.choices[0].message
+                self.internal_thoughts.append(message)
+                tool_calls = message.tool_calls
+                if tool_calls:
+                    content_send_directly_to_user = []
+                    for tool_call in tool_calls:
+                        if tool_call.type == 'function':
+                            func_name = tool_call.function.name
+                            args_str = tool_call.function.arguments
+                            func_results = self.function_handler.handle_function_call(func_name, args_str)
+
+                            if func_results and func_results.content is not None:
+                                self.internal_thoughts.append({
+                                    'tool_call_id': tool_call.id,
+                                    "role": "tool",
+                                    'name': func_name,
+                                    'content': func_results.content
+                                })
+
+                                if func_results.send_directly_to_user and func_results.content:
+                                    content_send_directly_to_user.append(func_results.content)
+
+                    if content_send_directly_to_user:
+                        return "\n".join(content_send_directly_to_user)
+
             elif finish_reason == 'function_call':
                 func_name = res.choices[0].message.function_call.name
                 args_str = res.choices[0].message.function_call.arguments
                 func_results = self.function_handler.handle_function_call(func_name, args_str)
 
                 if func_results:
-                    if func_results.assistant_thought:
-                        self.internal_thoughts.append(func_results.assistant_thought)
-
-                    if 'internal_thought' in func_results:
-                        self.internal_thoughts.append(func_results['internal_thought'])
-
                     if func_results.send_directly_to_user and func_results.content:
                         return func_results.content
+
+                    # add the function call to the internal thoughts so the AI can see it
+                    self.internal_thoughts.append({
+                        "role": "assistant",
+                        'content': None,
+                        'function_call': {
+                            'name': func_name,
+                            'arguments': args_str
+                        }
+                    })
+
+                    self.internal_thoughts.append({
+                        "role": "function",
+                        'content': func_results.content,
+                        'name': func_name
+                    })
+
             else:
                 raise ValueError(f"Unexpected finish reason: {finish_reason}")
 
