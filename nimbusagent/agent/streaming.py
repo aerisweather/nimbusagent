@@ -126,11 +126,6 @@ class StreamingAgent(BaseAgent):
                                 'tool_calls': tool_calls
                             })
 
-                            if self.send_events:
-                                for tool_call in tool_calls:
-                                    json_data = json.dumps(tool_call)
-                                    yield f"[[[function:{tool_call['name']}:{json_data}]]]"
-
                             # Handle tool calls
                             logging.info("Handling tool calls: %s", tool_calls)
                             content_send_directly_to_user = []
@@ -141,6 +136,11 @@ class StreamingAgent(BaseAgent):
                                     continue
 
                                 func_args = tool_call['function']["arguments"]
+
+                                if self.send_events:
+                                    json_data = json.dumps(func_args)
+                                    yield f"[[[function:{func_name}:{json_data}]]]"
+
                                 func_results = self.function_handler.handle_function_call(func_name, func_args)
                                 if func_results is not None:
                                     if func_results.stream_data and self.send_events:
