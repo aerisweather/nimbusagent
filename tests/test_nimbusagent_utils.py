@@ -112,8 +112,8 @@ class TestHelperFunctions(unittest.TestCase):
         self.assertIsNone(helper.get_embedding("some text"))
 
     def test_cosine_similarity(self):
-        self.assertAlmostEqual(helper.cosine_similarity([1, 0], [0, 1]), 1)
-        self.assertAlmostEqual(helper.cosine_similarity([1, 0], [1, 0]), 0)
+        self.assertAlmostEqual(helper.cosine_similarity([1, 0], [0, 1]), 0)
+        self.assertAlmostEqual(helper.cosine_similarity([1, 0], [1, 0]), 1)
 
     @patch("nimbusagent.utils.helper.get_embedding")
     def test_find_similar_embedding_list(self, mock_get_embedding):
