@@ -62,14 +62,14 @@ class StreamingAgent(BaseAgent):
             def output_event(event_type: str, name: str, data: any):
 
                 if not data:
-                    return f"[[[{event_type}:{name}]]]\n"
+                    return f"[[[{event_type}:{name}]]]"
 
                 if not isinstance(data, str):
                     data = json.dumps(data)
                     if len(data) > self.max_event_size:
                         data = '{"error":"data too large"}'
 
-                return f"[[[{event_type}:{name}:{data}]]]\n"
+                return f"[[[{event_type}:{name}:{data}]]]"
 
             loops = 0
             post_content_items = []
