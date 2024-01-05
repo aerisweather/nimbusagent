@@ -128,6 +128,26 @@ can be passed to customize the agent's behavior. Below is a detailed description
 - **Type**: `int`
 - **Default**: `3`
 
+#### `functions_min_similarity`
+
+- **Description**: The minimum similarity score for a function to be considered when handling a query.
+- **Type**: `float`
+- **Default**: `0.5`
+
+#### `function_max_tokens`
+
+- **Description**: The maximum number of tokens to allow towards function definitions. This is useful for preventing
+  using a large number of tokens from function definitions, thus lowering costs and preventing AI errors. Set to 0 for
+  unlimited token usage
+- **Type**: `int`
+- **Default**: `2000`
+
+#### `use_tool_calls`
+
+- **Description**: Whether to use the new OpenAI Tool Calls vs the now deprecated Function calls
+- **Type**: `bool`
+- **Default**: `True`
+
 #### `system_message`
 
 - **Description**: A system message that sets the context for the agent.
@@ -181,6 +201,13 @@ can be passed to customize the agent's behavior. Below is a detailed description
 - **Description**: Whether the agent should send events (useful for streaming responses).
 - **Type**: `bool`
 - **Default**: `False`
+
+#### `max_event_size`
+
+- **Description**: The maximum size of an event in bytes. Allows limiting sending large data streams from a function
+  response
+- **Type**: `int`
+- **Default**: `2000`
 
 ### Example of Initialization
 

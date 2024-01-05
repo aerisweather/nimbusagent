@@ -1,6 +1,6 @@
 [project]
 name = "nimbusagent"
-version = "0.3.1"
+version = "0.4.0"
 description = "An OpenAI agent with basic memory, functions, and moderation support"
 readme = "README.md"
 license = { file = "LICENSE.txt" }

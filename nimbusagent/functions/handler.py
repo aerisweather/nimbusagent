@@ -51,23 +51,28 @@ class FunctionHandler:
     pattern_groups = None
     chat_history: AgentMemory = None
     processed_functions = None
+    max_tokens = 0
 
     def __init__(self, functions: list = None,
                  embeddings: list = None,
                  k_nearest: int = 3,
+                 min_similarity: float = 0.5,
                  always_use: list = None,
                  pattern_groups: list = None,
                  calling_function_start_callback: callable = None,
                  calling_function_stop_callback: callable = None,
-                 chat_history: AgentMemory = None
+                 chat_history: AgentMemory = None,
+                 max_tokens: int = 0
                  ):
 
         self.embeddings = embeddings
         self.k_nearest = k_nearest
+        self.min_similarity = min_similarity
         self.always_use = always_use
         self.pattern_groups = pattern_groups
         self.chat_history = chat_history
         self.encoding = tiktoken.get_encoding("cl100k_base")
+        self.max_tokens = max_tokens
 
         self.orig_functions = {func.__name__: func for func in functions} if functions else None
         if not embeddings:
@@ -176,12 +181,11 @@ class FunctionHandler:
             self.functions = None
             self.func_mapping = None
 
-    def get_functions_from_query_and_history(self, query: str, history: List[Dict[str, Any]], max_tokens: int = 2250):
+    def get_functions_from_query_and_history(self, query: str, history: List[Dict[str, Any]]):
         """
         Get the functions to use based on the query and history.
         :param query:  The query to use.
         :param history:  The history to use. A list of dictionaries with 'role' and 'content' fields.
-        :param max_tokens:  The maximum number of tokens to use. Defaults to 2250.
         """
         if not self.orig_functions:
             return None
@@ -216,7 +220,7 @@ class FunctionHandler:
             if query_group_functions:
                 actual_function_names = combine_lists_unique(actual_function_names, query_group_functions)
 
-            logging.info(f"Functions to use: {actual_function_names}")
+            logging.info(f"Actual Functions Names to use: {actual_function_names}")
             # step 5: step through functions and get the function info, adding up to max_tokens
 
         processed_functions = []
@@ -226,11 +230,12 @@ class FunctionHandler:
             if func_info:
                 processed_functions.append(func_info)
                 token_count += func_info.tokens
-                if token_count >= max_tokens:
+                if 0 < self.max_tokens <= token_count:
                     break
 
         self.processed_functions = processed_functions
         using_functions = [func.name for func in processed_functions]
+        logging.info(f"query: {query}")
         logging.info(f"Using functions: {using_functions}")
         logging.info(f"Total tokens: {token_count}")
 

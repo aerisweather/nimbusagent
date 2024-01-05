@@ -32,6 +32,9 @@ class BaseAgent:
             functions_always_use: Optional[List[str]] = None,
             functions_pattern_groups: Optional[List[dict]] = None,
             functions_k_closest: int = 3,
+            function_min_similarity: float = 0.5,
+
+            function_max_tokens: int = 2000,
             use_tool_calls: bool = True,
 
             system_message: str = SYS_MSG,
@@ -50,6 +53,7 @@ class BaseAgent:
             loops_max: int = 10,
 
             send_events: bool = False,
+            max_event_size: int = 2000,
     ):
         """
         Base Agent Class for Nimbus Agent
@@ -62,8 +66,10 @@ class BaseAgent:
             functions: The list of functions to use (default: None)
             functions_embeddings: The list of function embeddings to use (default: None)
             functions_pattern_groups: The list of function pattern groups to use (default: None)
-            functions_k_closest: The number of closest functions to use (default: 3)
+            functions_k_closest: The number of closest embedding functions to use (default: 3)
+            function_min_similarity: The minimum similarity to use for embedding functions (default: 0.5)
             functions_always_use: The list of functions to always use (default: None)
+            function_max_tokens: The maximum number of tokens to allow for function call. (default: 2500) 0 = unlimited
             use_tool_calls: True if parallel functions should be allowed (default: True). Functions are being
                             deprecated though tool_calls are still a bit beta, so for now this can be set to
                             False to continue using function calls.
@@ -80,6 +86,7 @@ class BaseAgent:
             internal_thoughts_max_entries: The maximum number of entries to store in the internal thoughts (default: 3)
             loops_max: The maximum number of loops to allow (default: 5)
             send_events: True if events should be sent (default: False)
+            max_event_size: The maximum size of an event (default: 2000)
         """
 
         self.client = OpenAI(api_key=openai_api_key if openai_api_key is not None else os.getenv("OPENAI_API_KEY"))
@@ -101,6 +108,7 @@ class BaseAgent:
         self.moderation_fail_message = moderation_fail_message
         self.loops_max = loops_max
         self.send_events = send_events
+        self.max_event_size = max_event_size
         self.calling_function_start_callback = calling_function_start_callback
         self.calling_function_stop_callback = calling_function_stop_callback
 
@@ -110,8 +118,14 @@ class BaseAgent:
                 raise ValueError('The message history contains inappropriate content.')
             self.chat_history.set_chat_history(message_history)
 
-        self.function_handler = self._init_function_handler(functions, functions_embeddings, functions_k_closest,
-                                                            functions_always_use, functions_pattern_groups)
+        self.function_handler = self._init_function_handler(
+            functions=functions,
+            functions_embeddings=functions_embeddings,
+            functions_k_closest=functions_k_closest,
+            functions_always_use=functions_always_use,
+            functions_pattern_groups=functions_pattern_groups,
+            function_max_tokens=function_max_tokens,
+            function_min_similarity=function_min_similarity)
         self.use_tool_calls = use_tool_calls
 
     def set_system_message(self, message: str) -> None:
@@ -122,8 +136,10 @@ class BaseAgent:
 
     def _init_function_handler(self, functions: Optional[List], functions_embeddings: Optional[List],
                                functions_k_closest: int = 3,
+                               function_min_similarity: float = 0.5,
                                functions_always_use: Optional[List[str]] = None,
-                               functions_pattern_groups: Optional[List[dict]] = None) -> FunctionHandler:
+                               functions_pattern_groups: Optional[List[dict]] = None,
+                               function_max_tokens: int = 0) -> FunctionHandler:
         """Initializes the function handler.
         Returns a FunctionHandler instance.
 
@@ -139,10 +155,12 @@ class BaseAgent:
             functions=functions,
             embeddings=functions_embeddings,
             k_nearest=functions_k_closest,
+            min_similarity=function_min_similarity,
             always_use=functions_always_use,
             pattern_groups=functions_pattern_groups,
             calling_function_start_callback=self.calling_function_start_callback,
             calling_function_stop_callback=self.calling_function_stop_callback,
+            max_tokens=function_max_tokens,
             chat_history=self.chat_history
         )
 
@@ -167,6 +185,7 @@ class BaseAgent:
 
         if use_functions and self.function_handler.functions and not force_no_functions:
             if self.use_tool_calls:
+                # noinspection PyTypeChecker
                 res = self.client.chat.completions.create(
                     model=model_name,
                     temperature=self.temperature,
@@ -175,6 +194,7 @@ class BaseAgent:
                     tool_choice=function_call,
                     stream=stream)
             else:
+                # noinspection PyTypeChecker
                 res = self.client.chat.completions.create(
                     model=model_name,
                     temperature=self.temperature,

@@ -5,6 +5,9 @@ from typing import Generator, List
 
 from nimbusagent.agent.base import BaseAgent, HAVING_TROUBLE_MSG
 
+EVENT_TYPE_FUNCTION = "function"
+EVENT_TYPE_DATA = "data"
+
 
 class StreamingAgent(BaseAgent):
     """Agent that streams responses to the user and can hanldle openai function calls.
@@ -55,6 +58,18 @@ class StreamingAgent(BaseAgent):
                 if post_content:
                     return f"{' '.join(post_content)}\n"
                 return ""
+
+            def output_event(event_type: str, name: str, data: any):
+
+                if not data:
+                    return f"[[[{event_type}:{name}]]]\n"
+
+                if not isinstance(data, str):
+                    data = json.dumps(data)
+                    if len(data) > self.max_event_size:
+                        data = '{"error":"data too large"}'
+
+                return f"[[[{event_type}:{name}:{data}]]]\n"
 
             loops = 0
             post_content_items = []
@@ -138,15 +153,13 @@ class StreamingAgent(BaseAgent):
                                 func_args = tool_call['function']["arguments"]
 
                                 if self.send_events:
-                                    json_data = json.dumps(func_args)
-                                    yield f"[[[function:{func_name}:{json_data}]]]"
+                                    yield output_event(EVENT_TYPE_FUNCTION, func_name, func_args)
 
                                 func_results = self.function_handler.handle_function_call(func_name, func_args)
                                 if func_results is not None:
                                     if func_results.stream_data and self.send_events:
                                         for key, value in func_results.stream_data.items():
-                                            json_value = json.dumps(value)
-                                            yield f"[[[data:{key}:{json_value}]]]"
+                                            yield output_event(EVENT_TYPE_DATA, key, value)
 
                                     if func_results.send_directly_to_user and func_results.content:
                                         content_send_directly_to_user.append(func_results.content)
@@ -174,8 +187,8 @@ class StreamingAgent(BaseAgent):
 
                         elif finish_reason == "function_call":
                             if self.send_events:
-                                json_data = json.dumps(self.function_handler.get_args(func_call['arguments']))
-                                yield f"[[[function:{func_call['name']}:{json_data}]]]"
+                                yield output_event(EVENT_TYPE_FUNCTION, func_call['name'],
+                                                   json.dumps(self.function_handler.get_args(func_call['arguments'])))
 
                             # Handle function call
                             logging.info("Handling function call: %s", func_call)
@@ -184,8 +197,7 @@ class StreamingAgent(BaseAgent):
                             if func_results is not None:
                                 if func_results.stream_data and self.send_events:
                                     for key, value in func_results.stream_data.items():
-                                        json_value = json.dumps(value)
-                                        yield f"[[[data:{key}:{json_value}]]]"
+                                        yield output_event(EVENT_TYPE_DATA, key, value)
 
                                 if func_results.send_directly_to_user and func_results.content:
                                     yield func_results.content

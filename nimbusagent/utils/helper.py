@@ -60,15 +60,18 @@ def cosine_similarity(list1, list2):
     :param list2: The second vector.
     :return: The cosine similarity of the two vectors.
     """
-    return 1 - dot(list1, list2) / (norm(list1) * norm(list2))
+    return dot(list1, list2) / (norm(list1) * norm(list2))
 
 
-def find_similar_embedding_list(query: str, function_embeddings: list, k_nearest_neighbors: int = 1):
-    """Return the k function descriptions most similar (least cosine distance) to given query
+def find_similar_embedding_list(query: str, function_embeddings: list, k_nearest_neighbors: int = 1,
+                                min_similarity: float = 0.5):
+    """
+    Return the k function descriptions most similar to given query.
     :param query: The query to check.
     :param function_embeddings: The list of function embeddings to compare to.
     :param k_nearest_neighbors: The number of nearest neighbors to return.
-    :return: The k function descriptions most similar (least cosine distance) to given query
+    :param min_similarity: The minimum cosine similarity to consider a function relevant.
+    :return: The k function descriptions most similar to given query.
     """
     if not function_embeddings or len(function_embeddings) == 0 or not query:
         return None
@@ -77,15 +80,18 @@ def find_similar_embedding_list(query: str, function_embeddings: list, k_nearest
     if not query_embedding:
         return None
 
-    distances = []
+    similarities = []
     for function_embedding in function_embeddings:
-        dist = cosine_similarity(query_embedding, function_embedding['embedding'])
-        distances.append(
-            {'name': function_embedding['name'], 'distance': dist})
+        similarity = cosine_similarity(query_embedding, function_embedding['embedding'])
+        if similarity >= min_similarity:
+            similarities.append({'name': function_embedding['name'], 'similarity': similarity})
 
-    sorted_distances = sorted(distances, key=lambda x: x['distance'])
+    # Sort the results by similarity in descending order (most similar first)
+    sorted_similarities = sorted(similarities, key=lambda x: x['similarity'], reverse=True)
 
-    return sorted_distances[:k_nearest_neighbors]
+    # Return the top k nearest neighbors
+    return sorted_similarities[:k_nearest_neighbors]
+
 
 
 def combine_lists_unique(list1: Iterable[Any], set2: Union[Iterable[Any], set]) -> List[Any]:
