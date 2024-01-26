@@ -6,7 +6,7 @@ from openai import OpenAI
 
 from nimbusagent.functions.handler import FunctionHandler
 from nimbusagent.memory.base import AgentMemory
-from nimbusagent.utils.helper import is_query_safe
+from nimbusagent.utils.helper import is_query_safe, FUNCTIONS_EMBEDDING_MODEL
 
 SYS_MSG = """You are a helpful assistant."""
 
@@ -29,6 +29,7 @@ class BaseAgent:
 
             functions: Optional[list] = None,
             functions_embeddings: Optional[List[dict]] = None,
+            functions_embeddings_model: str = FUNCTIONS_EMBEDDING_MODEL,
             functions_always_use: Optional[List[str]] = None,
             functions_pattern_groups: Optional[List[dict]] = None,
             functions_k_closest: int = 3,
@@ -65,6 +66,7 @@ class BaseAgent:
             temperature: The temperature for the response sampling (default: 0.1)
             functions: The list of functions to use (default: None)
             functions_embeddings: The list of function embeddings to use (default: None)
+            functions_embeddings_model: The model to use for function embeddings (default: 'text-embedding-ada-002')
             functions_pattern_groups: The list of function pattern groups to use (default: None)
             functions_k_closest: The number of closest embedding functions to use (default: 3)
             function_min_similarity: The minimum similarity to use for embedding functions (default: 0.5)
@@ -121,6 +123,7 @@ class BaseAgent:
         self.function_handler = self._init_function_handler(
             functions=functions,
             functions_embeddings=functions_embeddings,
+            functions_embeddings_model=functions_embeddings_model,
             functions_k_closest=functions_k_closest,
             functions_always_use=functions_always_use,
             functions_pattern_groups=functions_pattern_groups,
@@ -134,7 +137,10 @@ class BaseAgent:
         """
         self.system_message = {"role": "system", "content": message}
 
-    def _init_function_handler(self, functions: Optional[List], functions_embeddings: Optional[List],
+    def _init_function_handler(self,
+                               functions: Optional[List],
+                               functions_embeddings: Optional[List],
+                               functions_embeddings_model: str = FUNCTIONS_EMBEDDING_MODEL,
                                functions_k_closest: int = 3,
                                function_min_similarity: float = 0.5,
                                functions_always_use: Optional[List[str]] = None,
@@ -154,6 +160,7 @@ class BaseAgent:
         return FunctionHandler(
             functions=functions,
             embeddings=functions_embeddings,
+            embeddings_model=functions_embeddings_model,
             k_nearest=functions_k_closest,
             min_similarity=function_min_similarity,
             always_use=functions_always_use,

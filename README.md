@@ -110,6 +110,12 @@ can be passed to customize the agent's behavior. Below is a detailed description
 - **Type**: `Optional[List[dict]]`
 - **Default**: `None`
 
+#### `functions_embeddings_model`
+
+- **Description**: The name of the OpenAI model to use for generating embeddings for the functions.
+- **Type**: `str`
+- **Default**: `'text-embedding-ada-002'`
+
 #### `functions_always_use`
 
 - **Description**: Functions that should always be used by the agent.

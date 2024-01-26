@@ -2,8 +2,7 @@ import logging
 import os
 from typing import Union, List, Iterable, Any
 
-from numpy import dot
-from numpy.linalg import norm
+import numpy as np
 from openai import OpenAI
 
 FUNCTIONS_EMBEDDING_MODEL = "text-embedding-ada-002"
@@ -38,7 +37,7 @@ def is_query_safe(query: str, api_key=None) -> bool:
 def get_embedding(text, model=FUNCTIONS_EMBEDDING_MODEL, api_key=None):
     """Returns the embedding of the given text.
     :param text: The text to get the embedding of.
-    :param model: The model to use. Defaults to the text-embedding-ada-002 model.
+    :param model: The model to use. Defaults to the text-embedding-3-small model.
     :param api_key: The OpenAI API key to use. Uses the OPENAI_API_KEY environment variable if not provided.
     :return: The embedding of the given text.
     """
@@ -54,19 +53,23 @@ def get_embedding(text, model=FUNCTIONS_EMBEDDING_MODEL, api_key=None):
         return None
 
 
-def cosine_similarity(list1, list2):
+def cosine_similarity(a, b):
     """ get cosine similarity of two vector of same dimensions
-    :param list1: The first vector.
-    :param list2: The second vector.
+    :param a: The first vector.
+    :param b: The second vector.
     :return: The cosine similarity of the two vectors.
     """
-    return dot(list1, list2) / (norm(list1) * norm(list2))
+    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
 
-def find_similar_embedding_list(query: str, function_embeddings: list, k_nearest_neighbors: int = 1,
-                                min_similarity: float = 0.5):
+def find_similar_embedding_list(query: str,
+                                function_embeddings: list,
+                                embeddings_model: str = FUNCTIONS_EMBEDDING_MODEL,
+                                k_nearest_neighbors: int = 1,
+                                min_similarity: float = 0.1):
     """
     Return the k function descriptions most similar to given query.
+    :param embeddings_model:
     :param query: The query to check.
     :param function_embeddings: The list of function embeddings to compare to.
     :param k_nearest_neighbors: The number of nearest neighbors to return.
@@ -76,7 +79,7 @@ def find_similar_embedding_list(query: str, function_embeddings: list, k_nearest
     if not function_embeddings or len(function_embeddings) == 0 or not query:
         return None
 
-    query_embedding = get_embedding(query)
+    query_embedding = get_embedding(query, model=embeddings_model)
     if not query_embedding:
         return None
 
@@ -91,7 +94,6 @@ def find_similar_embedding_list(query: str, function_embeddings: list, k_nearest
 
     # Return the top k nearest neighbors
     return sorted_similarities[:k_nearest_neighbors]
-
 
 
 def combine_lists_unique(list1: Iterable[Any], set2: Union[Iterable[Any], set]) -> List[Any]:

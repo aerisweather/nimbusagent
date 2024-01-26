@@ -12,7 +12,7 @@ from openai.types.chat import ChatCompletionToolParam
 from nimbusagent.functions import parser
 from nimbusagent.functions.responses import FuncResponse, DictFuncResponse
 from nimbusagent.memory.base import AgentMemory
-from nimbusagent.utils.helper import find_similar_embedding_list, combine_lists_unique
+from nimbusagent.utils.helper import find_similar_embedding_list, combine_lists_unique, FUNCTIONS_EMBEDDING_MODEL
 
 
 @dataclass
@@ -55,6 +55,7 @@ class FunctionHandler:
 
     def __init__(self, functions: list = None,
                  embeddings: list = None,
+                 embeddings_model: str = FUNCTIONS_EMBEDDING_MODEL,
                  k_nearest: int = 3,
                  min_similarity: float = 0.5,
                  always_use: list = None,
@@ -66,6 +67,7 @@ class FunctionHandler:
                  ):
 
         self.embeddings = embeddings
+        self.embeddings_model = embeddings_model
         self.k_nearest = k_nearest
         self.min_similarity = min_similarity
         self.always_use = always_use
@@ -210,6 +212,7 @@ class FunctionHandler:
             if self.embeddings:
                 similar_functions = find_similar_embedding_list(recent_history_and_query_str,
                                                                 function_embeddings=self.embeddings,
+                                                                embeddings_model=self.embeddings_model,
                                                                 k_nearest_neighbors=self.k_nearest)
                 similar_function_names = [d['name'] for d in similar_functions]
                 if similar_function_names:
