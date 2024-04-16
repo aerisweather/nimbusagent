@@ -26,6 +26,7 @@ class CompletionAgent(BaseAgent):
         if self._needs_moderation(query):
             return self.moderation_fail_message
 
+        self._clear_last_response()
         self._clear_internal_thoughts()
         self.function_handler.get_functions_from_query_and_history(query, self.get_chat_history())
         self._append_to_chat_history('user', query)
@@ -39,6 +40,8 @@ class CompletionAgent(BaseAgent):
             return res
         else:
             self._append_to_chat_history(res.choices[0].message.role, res.choices[0].message.content)
+            self.last_response = res.choices[0].message.content
+            self.handle_on_complete()
             return res.choices[0].message.content
 
     # noinspection PyUnresolvedReferences

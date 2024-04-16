@@ -25,20 +25,25 @@ class StreamingAgent(BaseAgent):
         :return:  A generator that yields the response.
         """
         if self._needs_moderation(query):
+            self.last_response = self.moderation_fail_message
             yield self.moderation_fail_message
-            return
 
-        self._clear_internal_thoughts()
-        self.function_handler.get_functions_from_query_and_history(query, self.get_chat_history())
-        self._append_to_chat_history('user', query)
+        else:
+            self._clear_internal_thoughts()
+            self._clear_last_response()
+            self.function_handler.get_functions_from_query_and_history(query, self.get_chat_history())
+            self._append_to_chat_history('user', query)
 
-        ai_response = self._generate_streaming_response(max_retries=max_retries)
-        content_accumulated = []
-        for content in ai_response:
-            content_accumulated.append(content)
-            yield content
+            ai_response = self._generate_streaming_response(max_retries=max_retries)
+            content_accumulated = []
+            for content in ai_response:
+                content_accumulated.append(content)
+                yield content
 
-        self._append_to_chat_history('assistant', "".join(content_accumulated))
+            self.last_response = "".join(content_accumulated)
+            self._append_to_chat_history('assistant', self.last_response)
+
+        self.handle_on_complete()
 
     def _generate_streaming_response(self, max_retries: int = 1) -> Generator[str, None, None]:
         """
@@ -56,7 +61,13 @@ class StreamingAgent(BaseAgent):
 
             def output_post_content(post_content: List[str]):
                 if post_content:
-                    return f"{' '.join(post_content)}\n"
+                    post_content_str = f"{' '.join(post_content)}\n"
+                    return post_content_str
+                return ""
+
+            def output_content(out_content: str):
+                if out_content:
+                    return out_content
                 return ""
 
             def output_event(event_type: str, name: str, data: any):
@@ -179,7 +190,7 @@ class StreamingAgent(BaseAgent):
                                         force_no_functions = True
 
                             if content_send_directly_to_user:
-                                yield "\n".join(content_send_directly_to_user)
+                                yield output_content("\n".join(content_send_directly_to_user))
                                 yield output_post_content(post_content_items)
                                 return
 
@@ -230,7 +241,7 @@ class StreamingAgent(BaseAgent):
                         content = delta.content
                         if content is not None:
                             has_content = True
-                            yield delta.content
+                            yield output_content(delta.content)
 
                         if message.choices[0].finish_reason == 'stop':
                             yield output_post_content(post_content_items)
@@ -251,10 +262,10 @@ class StreamingAgent(BaseAgent):
                         retries -= 1
                         time.sleep(1)
                         continue
-                    yield "AI temporarily unavailable."
+                    yield output_content("AI temporarily unavailable.")
                     break
 
             if loops >= self.loops_max:
-                yield HAVING_TROUBLE_MSG
+                yield output_content(HAVING_TROUBLE_MSG)
 
         return generate()

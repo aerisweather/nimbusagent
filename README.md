@@ -215,6 +215,14 @@ can be passed to customize the agent's behavior. Below is a detailed description
 - **Type**: `int`
 - **Default**: `2000`
 
+#### `on_complete`
+
+- **Description**: Callback function triggered when the agent completes a response. The response is passed as an
+  argument (string)
+  to the callback.
+- **Type**: `Optional[callable]`
+- **Default**: `None`
+
 ### Example of Initialization
 
 Here's an example of how you might initialize a `CompletionAgent` with some of these parameters:

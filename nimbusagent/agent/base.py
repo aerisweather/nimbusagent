@@ -55,6 +55,8 @@ class BaseAgent:
 
             send_events: bool = False,
             max_event_size: int = 2000,
+
+            on_complete: callable = None,
     ):
         """
         Base Agent Class for Nimbus Agent
@@ -89,6 +91,8 @@ class BaseAgent:
             loops_max: The maximum number of loops to allow (default: 5)
             send_events: True if events should be sent (default: False)
             max_event_size: The maximum size of an event (default: 2000)
+            on_complete: The callback to call when the agent completes a response.
+                The response is passed to the callable. This can be useful with streaming. (default: None)
         """
 
         self.client = OpenAI(api_key=openai_api_key if openai_api_key is not None else os.getenv("OPENAI_API_KEY"))
@@ -113,6 +117,7 @@ class BaseAgent:
         self.max_event_size = max_event_size
         self.calling_function_start_callback = calling_function_start_callback
         self.calling_function_stop_callback = calling_function_stop_callback
+        self.on_complete = on_complete
 
         self.chat_history = AgentMemory(max_messages=memory_max_entries, max_tokens=memory_max_tokens)
         if message_history is not None:
@@ -272,3 +277,12 @@ class BaseAgent:
     def clear_chat_history(self) -> None:
         """Clears the chat history."""
         self.chat_history.clear_chat_history()
+
+    def handle_on_complete(self) -> None:
+        """Handles the on_complete callback."""
+        if self.on_complete and self.last_response:
+            self.on_complete(self.last_response)
+
+    def _clear_last_response(self) -> None:
+        """Clears the last response."""
+        self.last_response = ""
