@@ -116,6 +116,18 @@ can be passed to customize the agent's behavior. Below is a detailed description
 - **Type**: `str`
 - **Default**: `'text-embedding-ada-002'`
 
+#### `functions_k_closest`
+
+- **Description**: The number of closest functions to consider when handling a query.
+- **Type**: `int`
+- **Default**: `3`
+
+#### `functions_min_similarity`
+
+- **Description**: The minimum similarity score for a function to be considered when handling a query.
+- **Type**: `float`
+- **Default**: `0.5`
+
 #### `functions_always_use`
 
 - **Description**: Functions that should always be used by the agent.
@@ -128,17 +140,12 @@ can be passed to customize the agent's behavior. Below is a detailed description
 - **Type**: `Optional[List[dict]]`
 - **Default**: `None`
 
-#### `functions_k_closest`
+#### `functions_pattern_mode`
 
-- **Description**: The number of closest functions to consider when handling a query.
-- **Type**: `int`
-- **Default**: `3`
-
-#### `functions_min_similarity`
-
-- **Description**: The minimum similarity score for a function to be considered when handling a query.
-- **Type**: `float`
-- **Default**: `0.5`
+- **Description**: The mode for matching functions to user queries. Options are `all` to check all patterns, `first` to
+  use only the functions within the first group that has a matching pattern
+- **Type**: `Literal['all', 'first']`
+- **Default**: `'all'`
 
 #### `function_max_tokens`
 

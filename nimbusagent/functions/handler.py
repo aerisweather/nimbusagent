@@ -4,7 +4,7 @@ import json
 import logging
 import re
 from dataclasses import dataclass
-from typing import Optional, List, Dict, Any, Union, Callable, Type, Tuple
+from typing import Optional, List, Dict, Any, Union, Callable, Type, Tuple, Literal
 
 import tiktoken
 from openai.types.chat import ChatCompletionToolParam
@@ -49,6 +49,7 @@ class FunctionHandler:
     always_use = None
     orig_functions: dict = None
     pattern_groups = None
+    pattern_mode = 'all'
     chat_history: AgentMemory = None
     processed_functions = None
     max_tokens = 0
@@ -60,6 +61,7 @@ class FunctionHandler:
                  min_similarity: float = 0.5,
                  always_use: list = None,
                  pattern_groups: list = None,
+                 pattern_mode: Literal['all', 'first'] = 'all',
                  calling_function_start_callback: callable = None,
                  calling_function_stop_callback: callable = None,
                  chat_history: AgentMemory = None,
@@ -72,6 +74,7 @@ class FunctionHandler:
         self.min_similarity = min_similarity
         self.always_use = always_use
         self.pattern_groups = pattern_groups
+        self.pattern_mode = pattern_mode
         self.chat_history = chat_history
         self.encoding = tiktoken.get_encoding("cl100k_base")
         self.max_tokens = max_tokens
@@ -124,9 +127,8 @@ class FunctionHandler:
     def _get_group_function(self, query: str) -> Optional[List[str]]:
         """
         Get the list of functions to use based on the pattern groups.
-        :param query:  The query to use.
-        :return:  The list of functions to use based on the pattern groups. If no pattern groups are found, None is
-                    returned.
+        :param query: The query to use.
+        :return: The list of functions to use based on the pattern groups. If no pattern groups are found, None is returned.
         """
         if not self.pattern_groups:
             return None
@@ -139,8 +141,11 @@ class FunctionHandler:
                     func_name = func if isinstance(func, str) else func.__name__
                     if func_name not in function_names and func_name in self.orig_functions:
                         function_names.append(func_name)
+                # Break out of the loop after the first match if mode is 'first'
+                if self.pattern_mode == 'first':
+                    break
 
-        return function_names
+        return function_names if function_names else None
 
     def remove_functions_mappings(self, function_names: List[str]):
         """

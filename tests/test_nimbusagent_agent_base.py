@@ -12,7 +12,7 @@ class TestBaseAgent(unittest.TestCase):
     @patch('openai.OpenAI')
     def test_initialization(self, mock_openai):
         agent = BaseAgent(openai_api_key="test_key")
-        self.assertEqual(agent.model_name, 'gpt-4-0613')
+        self.assertEqual(agent.model_name, 'gpt-4-turbo')
         self.assertIsNotNone(agent.client)
 
     def test_set_system_message(self):

@@ -13,7 +13,7 @@ SYS_MSG = """You are a helpful assistant."""
 MODERATION_FAIL_MSG = """I'm sorry, I can't help you with that as it is not appropriate."""
 
 HAVING_TROUBLE_MSG = """I'm sorry, I'm having trouble understanding you."""
-DEFAULT_MODEL_NAME = 'gpt-4-0613'
+DEFAULT_MODEL_NAME = 'gpt-4-turbo'
 DEFAULT_TEMP = 0.1
 DEFAULT_SECONDARY_MODEL_NAME = 'gpt-3.5-turbo'
 
@@ -32,6 +32,7 @@ class BaseAgent:
             functions_embeddings_model: str = FUNCTIONS_EMBEDDING_MODEL,
             functions_always_use: Optional[List[str]] = None,
             functions_pattern_groups: Optional[List[dict]] = None,
+            function_pattern_mode: Literal['all', 'first'] = 'all',
             functions_k_closest: int = 3,
             function_min_similarity: float = 0.5,
 
@@ -70,6 +71,8 @@ class BaseAgent:
             functions_embeddings: The list of function embeddings to use (default: None)
             functions_embeddings_model: The model to use for function embeddings (default: 'text-embedding-ada-002')
             functions_pattern_groups: The list of function pattern groups to use (default: None)
+            function_pattern_mode: The mode to use for function patterns (default: 'all') step through all patterns
+                            or 'first' to stop at the first match
             functions_k_closest: The number of closest embedding functions to use (default: 3)
             function_min_similarity: The minimum similarity to use for embedding functions (default: 0.5)
             functions_always_use: The list of functions to always use (default: None)
@@ -132,6 +135,7 @@ class BaseAgent:
             functions_k_closest=functions_k_closest,
             functions_always_use=functions_always_use,
             functions_pattern_groups=functions_pattern_groups,
+            function_pattern_mode=function_pattern_mode,
             function_max_tokens=function_max_tokens,
             function_min_similarity=function_min_similarity)
         self.use_tool_calls = use_tool_calls
@@ -150,6 +154,7 @@ class BaseAgent:
                                function_min_similarity: float = 0.5,
                                functions_always_use: Optional[List[str]] = None,
                                functions_pattern_groups: Optional[List[dict]] = None,
+                               function_pattern_mode: Literal['all', 'first'] = 'all',
                                function_max_tokens: int = 0) -> FunctionHandler:
         """Initializes the function handler.
         Returns a FunctionHandler instance.
@@ -170,6 +175,7 @@ class BaseAgent:
             min_similarity=function_min_similarity,
             always_use=functions_always_use,
             pattern_groups=functions_pattern_groups,
+            pattern_mode=function_pattern_mode,
             calling_function_start_callback=self.calling_function_start_callback,
             calling_function_stop_callback=self.calling_function_stop_callback,
             max_tokens=function_max_tokens,
