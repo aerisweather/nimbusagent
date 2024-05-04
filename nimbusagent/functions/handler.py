@@ -12,7 +12,7 @@ from openai.types.chat import ChatCompletionToolParam
 from nimbusagent.functions import parser
 from nimbusagent.functions.responses import FuncResponse, DictFuncResponse
 from nimbusagent.memory.base import AgentMemory
-from nimbusagent.utils.helper import find_similar_embedding_list, combine_lists_unique, FUNCTIONS_EMBEDDING_MODEL
+from nimbusagent.utils.helper import combine_lists_unique, FUNCTIONS_EMBEDDING_MODEL, find_similar_embedding_list
 
 
 @dataclass
@@ -57,6 +57,7 @@ class FunctionHandler:
     def __init__(self, functions: list = None,
                  embeddings: list = None,
                  embeddings_model: str = FUNCTIONS_EMBEDDING_MODEL,
+                 embeddings_fetcher: Callable = None,
                  k_nearest: int = 3,
                  min_similarity: float = 0.5,
                  always_use: list = None,
@@ -71,6 +72,7 @@ class FunctionHandler:
         self.embeddings = embeddings
         self.embeddings_model = embeddings_model
         self.k_nearest = k_nearest
+        self.embeddings_fetcher = embeddings_fetcher
         self.min_similarity = min_similarity
         self.always_use = always_use
         self.pattern_groups = pattern_groups
@@ -197,39 +199,46 @@ class FunctionHandler:
         if not self.orig_functions:
             return None
 
-        if not self.pattern_groups and not self.embeddings:
+        if not self.pattern_groups and not self.embeddings and not self.always_use:
             actual_function_names = self.orig_functions.keys()
 
         else:
             # Step 1: Initialize with 'always_use' functions
-            actual_function_names = self.always_use if self.always_use else []
-            # print("actual_function_names: ", actual_function_names)
+            if self.always_use:
+                actual_function_names = self.always_use
+            else:
+                actual_function_names = []
 
-            # step 2: Add functions based on pattern groups on query
-            query_group_functions = self._get_group_function(query)
-            if query_group_functions:
-                actual_function_names = combine_lists_unique(actual_function_names, query_group_functions)
+            if self.embeddings_fetcher:
+                found_functions = self.embeddings_fetcher(query, history)
+                if found_functions:
+                    actual_function_names = combine_lists_unique(actual_function_names, found_functions)
+            else:
+                # step 2: Add functions based on pattern groups on query
+                query_group_functions = self._get_group_function(query)
+                if query_group_functions:
+                    actual_function_names = combine_lists_unique(actual_function_names, query_group_functions)
 
-            # step 3: Add functions based on embeddings
-            recent_history_and_query = [message['content'] for message in history[-2:]] + [query]
-            recent_history_and_query_str = " ".join(recent_history_and_query)
+                # step 3: Add functions based on embeddings
+                recent_history_and_query = [message['content'] for message in history[-2:]] + [query]
+                recent_history_and_query_str = " ".join(recent_history_and_query)
 
-            if self.embeddings:
-                similar_functions = find_similar_embedding_list(recent_history_and_query_str,
-                                                                function_embeddings=self.embeddings,
-                                                                embeddings_model=self.embeddings_model,
-                                                                k_nearest_neighbors=self.k_nearest)
-                similar_function_names = [d['name'] for d in similar_functions]
-                if similar_function_names:
-                    actual_function_names = combine_lists_unique(actual_function_names, similar_function_names)
+                if self.embeddings:
+                    similar_functions = find_similar_embedding_list(recent_history_and_query_str,
+                                                                    function_embeddings=self.embeddings,
+                                                                    embeddings_model=self.embeddings_model,
+                                                                    k_nearest_neighbors=self.k_nearest)
+                    similar_function_names = [d['name'] for d in similar_functions]
+                    if similar_function_names:
+                        actual_function_names = combine_lists_unique(actual_function_names, similar_function_names)
 
-            # step 4: Add functions based on pattern groups on history
-            query_group_functions = self._get_group_function(recent_history_and_query_str)
-            if query_group_functions:
-                actual_function_names = combine_lists_unique(actual_function_names, query_group_functions)
+                    # step 4: Add functions based on pattern groups on history
+                    query_group_functions = self._get_group_function(recent_history_and_query_str)
+                    if query_group_functions:
+                        actual_function_names = combine_lists_unique(actual_function_names, query_group_functions)
 
-            logging.info(f"Actual Functions Names to use: {actual_function_names}")
-            # step 5: step through functions and get the function info, adding up to max_tokens
+        logging.info(f"Actual Functions Names to use: {actual_function_names}")
+        # step 5: step through functions and get the function info, adding up to max_tokens
 
         processed_functions = []
         token_count = 0
