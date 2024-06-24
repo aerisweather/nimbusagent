@@ -11,7 +11,7 @@ keywords = [
     "gpt4",
     "ai"
 ]
-authors = [pip install -
+authors = [
     { name = "Lee Huffman" }
 ]
 dependencies = [
