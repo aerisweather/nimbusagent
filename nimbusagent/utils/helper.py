@@ -29,7 +29,7 @@ def is_query_safe(query: str, api_key=None) -> bool:
         return True
 
     except Exception as e:
-        logging.error(f"An error occurred while checking query safety: {e}")
+        logging.info(f"An error occurred while checking query safety: {e}")
 
     return False
 
