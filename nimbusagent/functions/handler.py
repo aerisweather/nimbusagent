@@ -45,6 +45,7 @@ class FunctionHandler:
     :param chat_history:  The chat history to use.  If None, no chat history will be used.
     """
     functions = None
+    functions_class_options = None
     func_mapping = None
     always_use = None
     orig_functions: dict = None
@@ -55,6 +56,7 @@ class FunctionHandler:
     max_tokens = 0
 
     def __init__(self, functions: list = None,
+                 functions_class_options: dict = None,
                  embeddings: list = None,
                  embeddings_model: str = FUNCTIONS_EMBEDDING_MODEL,
                  embeddings_fetcher: Callable = None,
@@ -69,6 +71,7 @@ class FunctionHandler:
                  max_tokens: int = 0
                  ):
 
+        self.functions_class_options = functions_class_options
         self.embeddings = embeddings
         self.embeddings_model = embeddings_model
         self.k_nearest = k_nearest
@@ -379,9 +382,11 @@ class FunctionHandler:
             method_name = getattr(item, 'method_name', 'call')
             if inspect.isclass(item):  # It's a class type
                 instance = item()
-                if hasattr(item, 'set_chat_history'):
-                    method = getattr(item, 'set_chat_history')
-                    method(instance, self.chat_history)
+                if self.functions_class_options is not None and hasattr(instance, 'set_options'):
+                    instance.set_options(self.functions_class_options)
+                if hasattr(instance, 'set_chat_history'):
+                    instance.set_chat_history(self.chat_history)
+                res = self._execute_method(instance, method_name, args)
                 res = self._execute_method(instance, method_name, args)
             else:  # It's a class instance
                 if hasattr(item, 'set_chat_history'):

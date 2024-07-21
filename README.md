@@ -104,6 +104,12 @@ can be passed to customize the agent's behavior. Below is a detailed description
 - **Type**: `Optional[list]`
 - **Default**: `None`
 
+#### `functions_class_options`
+
+- **Description**: A dictionary of options to pass to the function class when initializing it.
+- **Type**: `Optional[dict]`
+- **Default**: `None`
+
 #### `functions_embeddings`
 
 - **Description**: Embeddings for the functions to help the AI understand them better.

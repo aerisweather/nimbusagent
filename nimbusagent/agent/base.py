@@ -28,6 +28,7 @@ class BaseAgent:
             max_tokens: int = 1000,
 
             functions: Optional[list] = None,
+            functions_class_options: Optional[dict] = None,
             functions_embeddings: Optional[List[dict]] = None,
             functions_embeddings_model: str = FUNCTIONS_EMBEDDING_MODEL,
             function_embeddings_fetcher: Optional[callable] = None,
@@ -69,6 +70,7 @@ class BaseAgent:
             secondary_model_name: The name of the secondary model to use (default: 'gpt-3.5-turbo')
             temperature: The temperature for the response sampling (default: 0.1)
             functions: The list of functions to use (default: None)
+            functions_class_options: The options to use for the functions class initiation (default: None)
             functions_embeddings: The list of function embeddings to use (default: None)
             functions_embeddings_model: The model to use for function embeddings (default: 'text-embedding-ada-002')
             functions_pattern_groups: The list of function pattern groups to use (default: None)
@@ -131,6 +133,7 @@ class BaseAgent:
 
         self.function_handler = self._init_function_handler(
             functions=functions,
+            functions_class_options=functions_class_options,
             functions_embeddings=functions_embeddings,
             functions_embeddings_model=functions_embeddings_model,
             functions_k_closest=functions_k_closest,
@@ -150,6 +153,7 @@ class BaseAgent:
 
     def _init_function_handler(self,
                                functions: Optional[List],
+                               functions_class_options: Optional[dict],
                                functions_embeddings: Optional[List],
                                functions_embeddings_model: str = FUNCTIONS_EMBEDDING_MODEL,
                                functions_k_closest: int = 3,
@@ -172,6 +176,7 @@ class BaseAgent:
 
         return FunctionHandler(
             functions=functions,
+            functions_class_options=functions_class_options,
             embeddings=functions_embeddings,
             embeddings_model=functions_embeddings_model,
             embeddings_fetcher=function_embeddings_fetcher,
