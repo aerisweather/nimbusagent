@@ -101,7 +101,7 @@ class AgentMemory:
         last_entry = None
         for entry in new_history:
             # sometimes the client may send duplicate entries history, if so, skip it to save tokens
-            if last_entry is None or last_entry['role'] != entry['role']:
+            if last_entry is None or last_entry['content'] != entry['content']:
                 self.add_entry(entry)
                 last_entry = entry
 

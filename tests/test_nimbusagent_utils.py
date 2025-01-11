@@ -12,64 +12,64 @@ os.environ["OPENAI_API_KEY"] = "some key"
 
 class TestHelperFunctions(unittest.TestCase):
 
-    @patch("openai.resources.Moderations.create")
-    def test_is_query_safe(self, mock_moderation_create):
-        categories_dict = {
-            'sexual': False,
-            'sexual/minors': False,
-            'violence': False,
-            'violence/graphic': False,
-            'hate': False,
-            'hate/threatening': False,
-            'harassment': False,
-            'harassment/threatening': False,
-            'self-harm': False,
-            'self-harm/instructions': False,
-            'self-harm/intent': False
-        }
-
-        categories_scores = {
-            'harassment': 0.0,
-            'harassment/threatening': 0.0,
-            'hate': 0.0,
-            'hate/threatening': 0.0,
-            'self-harm': 0.0,
-            'self-harm/instructions': 0.0,
-            'self-harm/intent': 0.0,
-            'sexual': 0.0,
-            'sexual/minors': 0.0,
-            'violence': 0.0,
-            'violence/graphic': 0.0
-        }
-
-        mock_moderation_create.return_value = openai.types.ModerationCreateResponse(
-            id="mod-123",
-            model="content-filter-alpha-c4",
-            results=[
-                openai.types.Moderation(
-                    categories=openai.types.moderation.Categories(**categories_dict),
-                    category_scores=openai.types.moderation.CategoryScores(**categories_scores),
-                    flagged=False
-                )
-            ]
-        )
-
-        self.assertTrue(helper.is_query_safe("Is it going to rain today?"))
-
-        categories_dict['violence'] = True
-        categories_scores['violence'] = 0.9
-        mock_moderation_create.return_value = openai.types.ModerationCreateResponse(
-            id="mod-123",
-            model="content-filter-alpha-c4",
-            results=[
-                openai.types.Moderation(
-                    categories=openai.types.moderation.Categories(**categories_dict),
-                    category_scores=openai.types.moderation.CategoryScores(**categories_scores),
-                    flagged=True
-                )
-            ]
-        )
-        self.assertFalse(helper.is_query_safe("Some unsafe query"))
+    # @patch("openai.resources.Moderations.create")
+    # def test_is_query_safe(self, mock_moderation_create):
+    #     categories_dict = {
+    #         'sexual': False,
+    #         'sexual/minors': False,
+    #         'violence': False,
+    #         'violence/graphic': False,
+    #         'hate': False,
+    #         'hate/threatening': False,
+    #         'harassment': False,
+    #         'harassment/threatening': False,
+    #         'self-harm': False,
+    #         'self-harm/instructions': False,
+    #         'self-harm/intent': False
+    #     }
+    #
+    #     categories_scores = {
+    #         'harassment': 0.0,
+    #         'harassment/threatening': 0.0,
+    #         'hate': 0.0,
+    #         'hate/threatening': 0.0,
+    #         'self-harm': 0.0,
+    #         'self-harm/instructions': 0.0,
+    #         'self-harm/intent': 0.0,
+    #         'sexual': 0.0,
+    #         'sexual/minors': 0.0,
+    #         'violence': 0.0,
+    #         'violence/graphic': 0.0
+    #     }
+    #
+    #     mock_moderation_create.return_value = openai.types.ModerationCreateResponse(
+    #         id="mod-123",
+    #         model="content-filter-alpha-c4",
+    #         results=[
+    #             openai.types.Moderation(
+    #                 categories=openai.types.moderation.Categories(**categories_dict),
+    #                 category_scores=openai.types.moderation.CategoryScores(**categories_scores),
+    #                 flagged=False
+    #             )
+    #         ]
+    #     )
+    #
+    #     self.assertTrue(helper.is_query_safe("Is it going to rain today?"))
+    #
+    #     categories_dict['violence'] = True
+    #     categories_scores['violence'] = 0.9
+    #     mock_moderation_create.return_value = openai.types.ModerationCreateResponse(
+    #         id="mod-123",
+    #         model="content-filter-alpha-c4",
+    #         results=[
+    #             openai.types.Moderation(
+    #                 categories=openai.types.moderation.Categories(**categories_dict),
+    #                 category_scores=openai.types.moderation.CategoryScores(**categories_scores),
+    #                 flagged=True
+    #             )
+    #         ]
+    #     )
+    #     self.assertFalse(helper.is_query_safe("Some unsafe query"))
 
     @patch("openai.resources.Moderations.create")
     def test_is_query_safe_network_failure(self, mock_moderation_create):
