@@ -95,15 +95,25 @@ class AgentMemory:
     def set_chat_history(self, new_history: List[Dict[str, str]]):
         """
         Set the chat history.
-        :param new_history:  The new chat history. Each entry must have both 'role' and 'content' fields.
+        :param new_history: The new chat history. Each entry must have both 'role' and 'content' fields.
         """
         self.clear_chat_history()
         last_entry = None
         for entry in new_history:
-            # sometimes the client may send duplicate entries history, if so, skip it to save tokens
-            if last_entry is None or last_entry['content'] != entry['content']:
-                self.add_entry(entry)
-                last_entry = entry
+            # Ensure only 'role' and 'content' fields are present
+            filtered_entry = {
+                'role': entry.get('role', '').strip(),
+                'content': entry.get('content', '').strip()
+            }
+
+            # Skip entries missing 'role' or 'content'
+            if not filtered_entry['role'] or not filtered_entry['content']:
+                continue
+
+            # Skip duplicate consecutive entries based on 'content'
+            if last_entry is None or last_entry['content'] != filtered_entry['content']:
+                self.add_entry(filtered_entry)
+                last_entry = filtered_entry
 
     def get_chat_length(self) -> int:
         """
