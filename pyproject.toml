@@ -1,6 +1,6 @@
 [project]
 name = "nimbusagent"
-version = "0.6.6"
+version = "0.7.0"
 description = "An OpenAI agent with basic memory, functions, and moderation support"
 readme = "README.md"
 license = { file = "LICENSE.txt" }
@@ -16,7 +16,7 @@ authors = [
     { name = "Lee Huffman" }
 ]
 dependencies = [
-    'openai>=1.35.15',
+    'openai>=1.61.0',
     'tiktoken==0.5.1',
     'pydantic==2.4.2',
     'numpy==1.24.4'

@@ -2,7 +2,7 @@ import os
 from typing import Optional, List, Union, Literal, Dict
 
 import openai
-from openai import OpenAI
+from openai import OpenAI, NotGiven
 
 from nimbusagent.functions.handler import FunctionHandler
 from nimbusagent.memory.base import AgentMemory
@@ -60,6 +60,9 @@ class BaseAgent:
             max_event_size: int = 2000,
 
             on_complete: callable = None,
+
+            store_request: bool = False,
+            store_metadata: Dict[str, str] = NotGiven
     ):
         """
         Base Agent Class for Nimbus Agent
@@ -99,6 +102,8 @@ class BaseAgent:
             max_event_size: The maximum size of an event (default: 2000)
             on_complete: The callback to call when the agent completes a response.
                 The response is passed to the callable. This can be useful with streaming. (default: None)
+            store_request: True if openAI request should be stored, useful for debugging and logging (default: False)
+            store_metadata: The metadata to store with the request (default: None)
         """
 
         self.client = OpenAI(api_key=openai_api_key if openai_api_key is not None else os.getenv("OPENAI_API_KEY"))
@@ -124,6 +129,8 @@ class BaseAgent:
         self.calling_function_start_callback = calling_function_start_callback
         self.calling_function_stop_callback = calling_function_stop_callback
         self.on_complete = on_complete
+        self.store_request = store_request
+        self.store_metadata = store_metadata
 
         self.chat_history = AgentMemory(max_messages=memory_max_entries, max_tokens=memory_max_tokens)
         if message_history is not None:
@@ -219,7 +226,10 @@ class BaseAgent:
                     messages=messages,
                     tools=self.function_handler.functions_to_tools(),
                     tool_choice=function_call,
-                    stream=stream)
+                    stream=stream,
+                    store=self.store_request,
+                    metadata=self.store_metadata
+                )
             else:
                 # noinspection PyTypeChecker
                 res = self.client.chat.completions.create(
@@ -228,13 +238,17 @@ class BaseAgent:
                     messages=messages,
                     functions=self.function_handler.functions,
                     function_call=function_call,
-                    stream=stream)
+                    stream=stream,
+                    store=self.store_request,
+                    metadata=self.store_metadata)
         else:
             res = self.client.chat.completions.create(
                 model=model_name,
                 temperature=self.temperature,
                 messages=messages,
-                stream=stream)
+                stream=stream,
+                store=self.store_request,
+                metadata=self.store_metadata)
         return res
 
     def _history_needs_moderation(self, history: List[Dict[str, str]]) -> bool:

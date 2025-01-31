@@ -236,6 +236,18 @@ can be passed to customize the agent's behavior. Below is a detailed description
 - **Type**: `Optional[callable]`
 - **Default**: `None`
 
+### `store_request`
+
+- **Description**: Whether to have OpenAI store the request for debugging purposes.
+- **Type**: `bool`
+- **Default**: `False`
+
+### `store_metadata`
+
+- **Description**: Any meta data openAI should store with the request.
+- **Type**: `Optional[dict]`
+- **Default**: `None`
+
 ### Example of Initialization
 
 Here's an example of how you might initialize a `CompletionAgent` with some of these parameters:
