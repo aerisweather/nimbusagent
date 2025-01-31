@@ -2,7 +2,7 @@ import os
 from typing import Optional, List, Union, Literal, Dict
 
 import openai
-from openai import OpenAI, NotGiven
+from openai import OpenAI
 
 from nimbusagent.functions.handler import FunctionHandler
 from nimbusagent.memory.base import AgentMemory
@@ -62,7 +62,7 @@ class BaseAgent:
             on_complete: callable = None,
 
             store_request: bool = False,
-            store_metadata: Dict[str, str] = NotGiven
+            store_metadata: Dict[str, str] = None
     ):
         """
         Base Agent Class for Nimbus Agent

@@ -2,8 +2,6 @@ import os
 import unittest
 from unittest.mock import patch, MagicMock
 
-from openai import NotGiven
-
 from nimbusagent.agent.base import BaseAgent
 
 os.environ['OPENAI_API_KEY'] = 'some key'
@@ -50,7 +48,7 @@ class TestBaseAgent(unittest.TestCase):
             messages=messages,
             stream=False,
             store=False,
-            metadata=NotGiven
+            metadata=None
         )
 
         # Validate that the response is a MagicMock (mocked response)
