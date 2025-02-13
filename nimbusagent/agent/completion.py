@@ -63,10 +63,13 @@ class CompletionAgent(BaseAgent):
             )
 
             finish_reason = res.choices[0].finish_reason
+            message = res.choices[0].message
+            if finish_reason == 'stop' and getattr(message, 'tool_calls', None) and message.tool_calls:
+                finish_reason = 'tool_calls'
+
             if finish_reason == 'stop' or len(self.internal_thoughts) > self.internal_thoughts_max_entries:
                 return res
             elif finish_reason == 'tool_calls':
-                message = res.choices[0].message
                 self.internal_thoughts.append(message)
                 tool_calls = message.tool_calls
                 if tool_calls:

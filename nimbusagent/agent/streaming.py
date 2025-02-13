@@ -144,6 +144,9 @@ class StreamingAgent(BaseAgent):
                                 func_call["arguments"] += delta.function_call.arguments
 
                         finish_reason = message.choices[0].finish_reason
+                        # NEW: If finish_reason is 'stop' but we have tool calls, override to 'tool_calls'
+                        if finish_reason == "stop" and tool_calls:
+                            finish_reason = "tool_calls"
 
                         if finish_reason == "tool_calls":
                             self.internal_thoughts.append({
@@ -243,7 +246,7 @@ class StreamingAgent(BaseAgent):
                             has_content = True
                             yield output_content(delta.content)
 
-                        if message.choices[0].finish_reason == 'stop':
+                        if finish_reason == 'stop':
                             yield output_post_content(post_content_items)
                             return
                         if len(self.internal_thoughts) > self.internal_thoughts_max_entries:
