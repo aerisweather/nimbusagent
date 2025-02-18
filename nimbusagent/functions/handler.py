@@ -202,7 +202,7 @@ class FunctionHandler:
         if not self.orig_functions:
             return None
 
-        if not self.pattern_groups and not self.embeddings and not self.always_use:
+        if not self.pattern_groups and not self.embeddings and not self.always_use and not self.embeddings_fetcher:
             actual_function_names = self.orig_functions.keys()
 
         else:
