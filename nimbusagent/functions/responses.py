@@ -18,6 +18,7 @@ class FuncResponse(BaseModel):
     :param use_secondary_model:  Whether to use the secondary model.
     :param force_no_functions:  Whether to force no functions.
     """
+
     name: str = None
     arguments: str = None
     content: str = None
@@ -36,15 +37,16 @@ class DictFuncResponse(FuncResponse):
     to post to the chat history, the data to stream to the user, whether to use the secondary model, and whether to
     force no functions.
     """
+
     data: Dict = None
 
     def __init__(self, init_data: Dict):
         super().__init__()
         self.data = init_data
-        self.content = init_data.get('content', '')
-        self.summarize_only = init_data.get('summarize_only', False)
-        self.send_directly_to_user = init_data.get('send_directly_to_user', False)
-        self.post_content = init_data.get('post_content', None)
-        self.stream_data = init_data.get('stream_data', None)
-        self.use_secondary_model = init_data.get('use_secondary_model', False)
-        self.force_no_functions = init_data.get('force_no_functions', False)
+        self.content = init_data.get("content", "")
+        self.summarize_only = init_data.get("summarize_only", False)
+        self.send_directly_to_user = init_data.get("send_directly_to_user", False)
+        self.post_content = init_data.get("post_content", None)
+        self.stream_data = init_data.get("stream_data", None)
+        self.use_secondary_model = init_data.get("use_secondary_model", False)
+        self.force_no_functions = init_data.get("force_no_functions", False)

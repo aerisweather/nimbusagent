@@ -85,9 +85,7 @@ class TestHelperFunctions(unittest.TestCase):
     def test_get_embedding(self, mock_embedding_create):
         # First part of the test
         embedding = openai.types.Embedding(
-            embedding=[0.1, 0.2],
-            index=0,
-            object="embedding"
+            embedding=[0.1, 0.2], index=0, object="embedding"
         )
 
         mock_embedding_create.return_value = openai.types.CreateEmbeddingResponse(
@@ -96,9 +94,8 @@ class TestHelperFunctions(unittest.TestCase):
             object="list",
             data=[embedding],
             usage=openai.types.create_embedding_response.Usage(
-                prompt_tokens=0,
-                total_tokens=0
-            )
+                prompt_tokens=0, total_tokens=0
+            ),
         )
 
         # {"data": [{"embedding": [0.1, 0.2]}]}
@@ -119,11 +116,11 @@ class TestHelperFunctions(unittest.TestCase):
     def test_find_similar_embedding_list(self, mock_get_embedding):
         mock_get_embedding.return_value = [0.2, 0.1]
         function_embeddings = [
-            {'name': 'func1', 'embedding': [0.2, 0.1]},
-            {'name': 'func2', 'embedding': [0.1, 0.3]}
+            {"name": "func1", "embedding": [0.2, 0.1]},
+            {"name": "func2", "embedding": [0.1, 0.3]},
         ]
         result = helper.find_similar_embedding_list("some query", function_embeddings)
-        self.assertEqual(result[0]['name'], 'func1')
+        self.assertEqual(result[0]["name"], "func1")
 
     def test_combine_lists_unique(self):
         self.assertEqual(helper.combine_lists_unique([1, 2], [2, 3]), [1, 2, 3])
@@ -140,7 +137,9 @@ class TestHelperFunctions(unittest.TestCase):
         # Assert the expected behavior
         # If your function can handle tuples, check the resulting list
         # If not, you might use `self.assertRaises(TypeError, helper.combine_lists_unique, list1, set2)`
-        self.assertEqual(result, [1, 2, 3, 4])  # Adjust this assertion based on your expected behavior
+        self.assertEqual(
+            result, [1, 2, 3, 4]
+        )  # Adjust this assertion based on your expected behavior
 
     @patch("nimbusagent.utils.helper.get_embedding")
     def test_find_similar_embedding_list_with_none_embeddings(self, mock_get_embedding):
@@ -149,23 +148,27 @@ class TestHelperFunctions(unittest.TestCase):
         self.assertIsNone(result)
 
     @patch("nimbusagent.utils.helper.get_embedding")
-    def test_find_similar_embedding_list_with_empty_embeddings(self, mock_get_embedding):
+    def test_find_similar_embedding_list_with_empty_embeddings(
+        self, mock_get_embedding
+    ):
         result = helper.find_similar_embedding_list("some query", [])
         self.assertIsNone(result)
 
     @patch("nimbusagent.utils.helper.get_embedding")
     def test_find_similar_embedding_list_with_empty_query(self, mock_get_embedding):
-        function_embeddings = [{'name': 'func1', 'embedding': [0.2, 0.1]}]
+        function_embeddings = [{"name": "func1", "embedding": [0.2, 0.1]}]
         result = helper.find_similar_embedding_list("", function_embeddings)
         self.assertIsNone(result)
 
     @patch("nimbusagent.utils.helper.get_embedding")
-    def test_find_similar_embedding_list_get_embedding_returns_none(self, mock_get_embedding):
+    def test_find_similar_embedding_list_get_embedding_returns_none(
+        self, mock_get_embedding
+    ):
         mock_get_embedding.return_value = None
-        function_embeddings = [{'name': 'func1', 'embedding': [0.2, 0.1]}]
+        function_embeddings = [{"name": "func1", "embedding": [0.2, 0.1]}]
         result = helper.find_similar_embedding_list("some query", function_embeddings)
         self.assertIsNone(result)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

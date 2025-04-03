@@ -16,14 +16,10 @@ def type_mapping(dtype):
     :return:  A tuple containing the container type and the item type. If the type is not a container, the container
             type will be None.
     """
-    type_map = {
-        float: "number",
-        int: "integer",
-        str: "string"
-    }
+    type_map = {float: "number", int: "integer", str: "string"}
 
     # Check if it's a List from the typing module
-    if hasattr(dtype, '__origin__') and dtype.__origin__ == list:
+    if hasattr(dtype, "__origin__") and dtype.__origin__ == list:
         # Assuming only one argument for List (like List[int]), else default to string
         item_type = dtype.__args__[0] if dtype.__args__ else str
         return "array", type_map.get(item_type, "string")
@@ -50,21 +46,21 @@ def extract_params(doc_str: str):
 
     for line in params_str:
         # If we encounter a return annotation, we end processing for the current parameter
-        if line.strip().startswith(':return:'):
+        if line.strip().startswith(":return:"):
             if current_param_name:
-                params[current_param_name] = ' '.join(current_param_desc).strip()
+                params[current_param_name] = " ".join(current_param_desc).strip()
                 current_param_name = None
                 current_param_desc = []
             continue
 
         # we only look at lines starting with ':param'
-        if line.strip().startswith(':param'):
+        if line.strip().startswith(":param"):
             # Save the previous parameter and its description (if any)
             if current_param_name:
-                params[current_param_name] = ' '.join(current_param_desc).strip()
+                params[current_param_name] = " ".join(current_param_desc).strip()
                 current_param_desc = []
 
-            param_match = re.findall(r'(?<=:param )\w+', line)
+            param_match = re.findall(r"(?<=:param )\w+", line)
             if param_match:
                 current_param_name = param_match[0]
                 desc_match = line.replace(f":param {current_param_name}:", "").strip()
@@ -76,7 +72,7 @@ def extract_params(doc_str: str):
 
     # Save the last parameter and its description (if any)
     if current_param_name:
-        params[current_param_name] = ' '.join(current_param_desc).strip()
+        params[current_param_name] = " ".join(current_param_desc).strip()
 
     return params
 
@@ -86,7 +82,7 @@ def param_to_title(param_name: str) -> str:
     :param param_name:  The parameter name to convert.
     :return:  The converted parameter name.
     """
-    return param_name.replace('_', ' ').title()
+    return param_name.replace("_", " ").title()
 
 
 def extract_enum_values(dtype) -> typing.Optional[typing.List[str]]:
@@ -97,21 +93,24 @@ def extract_enum_values(dtype) -> typing.Optional[typing.List[str]]:
             None. If the type is a List of Enum or Literal, it will return the values of the Enum or Literal as a list.
     """
     # Check if it's an Enum type
-    if dtype.__class__.__name__ == 'EnumMeta':
+    if dtype.__class__.__name__ == "EnumMeta":
         return [e.value for e in dtype]
 
         # Check if it's a typing.Literal type (or similar constructs in the typing module)
-    elif hasattr(dtype, '__origin__') and dtype.__origin__ == typing.Literal:
+    elif hasattr(dtype, "__origin__") and dtype.__origin__ == typing.Literal:
         return list(dtype.__args__)
 
         # Adjusting the check here for Python 3.8:
-    elif getattr(dtype, '__origin__', None) == list:
-        inner_dtype = dtype.__args__[0] if hasattr(dtype, '__args__') else None
+    elif getattr(dtype, "__origin__", None) == list:
+        inner_dtype = dtype.__args__[0] if hasattr(dtype, "__args__") else None
 
         # For this example, I'm just checking if it's an Enum or a Literal type inside a List.
-        if inner_dtype and inner_dtype.__class__.__name__ == 'EnumMeta':
+        if inner_dtype and inner_dtype.__class__.__name__ == "EnumMeta":
             return [e.value for e in inner_dtype]
-        elif hasattr(inner_dtype, '__origin__') and inner_dtype.__origin__ == typing.Literal:
+        elif (
+            hasattr(inner_dtype, "__origin__")
+            and inner_dtype.__origin__ == typing.Literal
+        ):
             return list(inner_dtype.__args__)
 
     return None
@@ -135,7 +134,7 @@ def extract_description(func_doc):
             break
         description_lines.append(line.strip())
 
-    return ' '.join(description_lines).strip()
+    return " ".join(description_lines).strip()
 
 
 def func_metadata(obj):
@@ -146,10 +145,12 @@ def func_metadata(obj):
     """
 
     if isinstance(obj, type):  # If it's a class
-        method_to_use = getattr(obj, 'method_name', 'call')
+        method_to_use = getattr(obj, "method_name", "call")
         func = getattr(obj, method_to_use, None)
         if not callable(func):
-            raise ValueError(f"Class {obj.__name__} does not have a callable 'call' method.")
+            raise ValueError(
+                f"Class {obj.__name__} does not have a callable 'call' method."
+            )
         func_name = obj.__name__  # Use the class name
     else:  # If it's a function
         func = obj
@@ -178,11 +179,7 @@ def func_metadata(obj):
     return {
         "name": func_name,  # This now correctly uses either the class name or the function name
         "description": func_description,
-        "parameters": {
-            "type": "object",
-            "properties": params,
-            "required": _required
-        }
+        "parameters": {"type": "object", "properties": params, "required": _required},
     }
 
 
@@ -195,13 +192,15 @@ def build_params(argspec, fixed_args, param_details):
     """
     params = {}
     for param_name, param_annotation in argspec.annotations.items():
-        if param_name not in fixed_args.keys() and param_name != 'self':
+        if param_name not in fixed_args.keys() and param_name != "self":
             container_type, mapped_type = type_mapping(param_annotation)
 
             param_metadata = {
-                "title": param_details.get(f"{param_name}_title", param_to_title(param_name)),
+                "title": param_details.get(
+                    f"{param_name}_title", param_to_title(param_name)
+                ),
                 "description": param_details.get(param_name) or "",
-                "type": mapped_type
+                "type": mapped_type,
             }
 
             if container_type == "array":
@@ -223,12 +222,16 @@ def determine_required_parameters(argspec, fixed_args):
     :param fixed_args:  The fixed arguments of the function.
     :return:  A list of the required parameters.
     """
-    _required = [i for i in argspec.args if i not in fixed_args.keys() and i != 'self']
+    _required = [i for i in argspec.args if i not in fixed_args.keys() and i != "self"]
 
     if argspec.defaults:
         num_defaults = len(argspec.defaults)
-        args_with_defaults = argspec.args[-num_defaults:]  # Get the names of arguments with defaults
+        args_with_defaults = argspec.args[
+            -num_defaults:
+        ]  # Get the names of arguments with defaults
 
-        _required = [arg for arg in _required if arg not in args_with_defaults]  # Filter out args with defaults
+        _required = [
+            arg for arg in _required if arg not in args_with_defaults
+        ]  # Filter out args with defaults
 
     return _required
