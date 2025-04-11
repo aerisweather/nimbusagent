@@ -9,18 +9,19 @@ class AgentMemory:
     This is basic memory that utilizes a simple list to store the chat history, and limits the list to a maximum
     number of tokens and entries. Tiktoken is used to tokenize the content.
 
-    :param max_tokens:  The maximum number of tokens to store in the chat history.  If None, no limit is enforced.
-    :param max_messages:  The maximum number of messages to store in the chat history.  If None, no limit is enforced.
+    :param max_tokens:  The maximum number of tokens to store in the chat history.
+    :param max_messages:  The maximum number of messages to store in the chat history.
     :param initial_history:  The initial chat history to use.  If None, the chat history will be empty.
     """
 
     def __init__(
         self,
-        max_tokens: int = None,
-        max_messages: int = None,
+        max_tokens: int,
+        max_messages: int,
+        token_encoding: str,
         initial_history: Optional[List[Dict[str, str]]] = None,
     ):
-        self.encoding = tiktoken.get_encoding("cl100k_base")
+        self.encoding = tiktoken.get_encoding(token_encoding)
         self.chat_history = []
         self.token_counts = (
             []
@@ -79,8 +80,8 @@ class AgentMemory:
         """
         Trim the chat history to the maximum number of tokens and entries.
         """
-        while (self.max_tokens is not None and self.num_tokens > self.max_tokens) or (
-            self.max_messages is not None and len(self.chat_history) > self.max_messages
+        while (self.num_tokens > self.max_tokens) or (
+            len(self.chat_history) > self.max_messages
         ):
             self.num_tokens -= self.token_counts.pop(0)
             self.chat_history.pop(0)
@@ -139,7 +140,9 @@ class AgentMemory:
         return self.num_tokens
 
     def resize(
-        self, max_tokens: Optional[int] = None, max_messages: Optional[int] = None
+        self,
+        max_tokens_resize: Optional[int] = None,
+        max_messages_resize: Optional[int] = None,
     ):
         """
         Resize the chat history. If the new maximum number of tokens or entries is smaller than the current number of
@@ -147,12 +150,12 @@ class AgentMemory:
         :param max_tokens:  The new maximum number of tokens.  If None, no limit is enforced.
         :param max_messages:  The new maximum number of entries.  If None, no limit is enforced.
         """
-        if max_tokens is not None:
-            self.max_tokens = max_tokens
+        if max_tokens_resize is not None:
+            self.max_tokens = max_tokens_resize
             self._trim_excess_entries()
 
-        if max_messages is not None:
-            self.max_messages = max_messages
+        if max_messages_resize is not None:
+            self.max_messages = max_messages_resize
             while len(self.chat_history) > self.max_messages:
                 dropped_tokens = self.chat_history.pop(0)
                 self.num_tokens -= len(dropped_tokens)
