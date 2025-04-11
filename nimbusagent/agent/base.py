@@ -48,6 +48,7 @@ class BaseAgent:
         moderation_fail_message: str = MODERATION_FAIL_MSG,
         memory_max_entries: int = 20,
         memory_max_tokens: int = 2000,
+        token_encoding: str = "cl100k_base",
         internal_thoughts_max_entries: int = 8,
         loops_max: int = 10,
         send_events: bool = False,
@@ -131,7 +132,7 @@ class BaseAgent:
         self.store_metadata = store_metadata
 
         self.chat_history = AgentMemory(
-            max_messages=memory_max_entries, max_tokens=memory_max_tokens
+            max_messages=memory_max_entries, max_tokens=memory_max_tokens, token_encoding=token_encoding
         )
         if message_history is not None:
             if self._history_needs_moderation(message_history):

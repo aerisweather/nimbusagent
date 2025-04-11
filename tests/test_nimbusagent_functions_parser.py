@@ -1,7 +1,6 @@
-import unittest
 from enum import Enum
 from typing import List
-
+import pytest
 from nimbusagent.functions.parser import (
     type_mapping,
     extract_params,
@@ -12,21 +11,23 @@ from nimbusagent.functions.parser import (
 )
 
 
-class TestTypeMapping(unittest.TestCase):
+class TestTypeMapping:
 
-    def test_type_mapping_for_basic_types(self):
-        self.assertEqual(type_mapping(int), (None, "integer"))
-        self.assertEqual(type_mapping(str), (None, "string"))
+    @pytest.mark.parametrize(
+        "input_type, expected",
+        [
+            (int, (None, "integer")),
+            (str, (None, "string")),
+            (List[int], ("array", "integer")),
+            (List[str], ("array", "string")),
+            (None, (None, "string")),
+        ],
+    )
+    def test_type_mapping_for_basic_types(self, input_type, expected):
+        assert type_mapping(input_type) == expected
 
-    def test_type_mapping_for_list(self):
-        self.assertEqual(type_mapping(List[int]), ("array", "integer"))
-        self.assertEqual(type_mapping(List[str]), ("array", "string"))
 
-    def test_type_mapping_for_unrecognized_types(self):
-        self.assertEqual(type_mapping(None), (None, "string"))
-
-
-class TestExtractParams(unittest.TestCase):
+class TestExtractParams:
 
     def test_extract_params_from_docstring(self):
         docstring = """
@@ -34,36 +35,31 @@ class TestExtractParams(unittest.TestCase):
         :param arg2: description 2
         :return: None
         """
-        self.assertEqual(
-            extract_params(docstring),
-            {"arg1": "description 1", "arg2": "description 2"},
-        )
+        assert extract_params(docstring) == {
+            "arg1": "description 1",
+            "arg2": "description 2",
+        }
 
-
-class TestParamToTitle(unittest.TestCase):
+class TestParamToTitle:
 
     def test_param_to_title(self):
-        self.assertEqual(param_to_title("param_name"), "Param Name")
+        assert param_to_title("param_name") == "Param Name"
 
 
-class TestExtractEnumValues(unittest.TestCase):
+class TestExtractEnumValues:
 
     def test_extract_enum_values_for_enum(self):
         class MyEnum(Enum):
             A = "A"
             B = "B"
 
-        self.assertEqual(extract_enum_values(MyEnum), ["A", "B"])
+        assert extract_enum_values(MyEnum) == ["A", "B"]
 
-
-class TestExtractDescription(unittest.TestCase):
+class TestExtractDescription:
 
     def test_extract_description(self):
         docstring = "Line 1\nLine 2\n:param x: An integer"
-        self.assertEqual(extract_description(docstring), "Line 1 Line 2")
+        assert extract_description(docstring) == "Line 1 Line 2"
 
 
 # ... Similarly, you can write unittests for func_metadata, build_params, determine_required_parameters ...
-
-if __name__ == "__main__":
-    unittest.main()
