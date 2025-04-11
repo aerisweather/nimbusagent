@@ -29,12 +29,15 @@ class TestTypeMapping(unittest.TestCase):
 class TestExtractParams(unittest.TestCase):
 
     def test_extract_params_from_docstring(self):
-        docstring = '''
+        docstring = """
         :param arg1: description 1
         :param arg2: description 2
         :return: None
-        '''
-        self.assertEqual(extract_params(docstring), {'arg1': 'description 1', 'arg2': 'description 2'})
+        """
+        self.assertEqual(
+            extract_params(docstring),
+            {"arg1": "description 1", "arg2": "description 2"},
+        )
 
 
 class TestParamToTitle(unittest.TestCase):
@@ -50,7 +53,7 @@ class TestExtractEnumValues(unittest.TestCase):
             A = "A"
             B = "B"
 
-        self.assertEqual(extract_enum_values(MyEnum), ['A', 'B'])
+        self.assertEqual(extract_enum_values(MyEnum), ["A", "B"])
 
 
 class TestExtractDescription(unittest.TestCase):

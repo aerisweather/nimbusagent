@@ -4,15 +4,15 @@ from unittest.mock import patch, MagicMock
 
 from nimbusagent.agent.base import BaseAgent
 
-os.environ['OPENAI_API_KEY'] = 'some key'
+os.environ["OPENAI_API_KEY"] = "some key"
 
 
 class TestBaseAgent(unittest.TestCase):
 
-    @patch('openai.OpenAI')
+    @patch("openai.OpenAI")
     def test_initialization(self, mock_openai):
         agent = BaseAgent(openai_api_key="test_key")
-        self.assertEqual(agent.model_name, 'gpt-4-turbo')
+        self.assertEqual(agent.model_name, "gpt-4-turbo")
         self.assertIsNotNone(agent.client)
 
     def test_set_system_message(self):
@@ -21,10 +21,10 @@ class TestBaseAgent(unittest.TestCase):
         expected_message = {"role": "system", "content": "Test Message"}
         self.assertEqual(agent.system_message, expected_message)
 
-    @patch('nimbusagent.utils.helper.is_query_safe', return_value=False)
+    @patch("nimbusagent.utils.helper.is_query_safe", return_value=False)
     def test_history_needs_moderation(self, mock_is_query_safe):
         agent = BaseAgent()
-        history = [{'role': 'user', 'content': 'inappropriate content'}]
+        history = [{"role": "user", "content": "inappropriate content"}]
         self.assertTrue(agent._history_needs_moderation(history))
 
     def test_create_chat_completion(self):
@@ -38,7 +38,7 @@ class TestBaseAgent(unittest.TestCase):
         mock_chat_create.return_value = MagicMock()
 
         # Test without using functions
-        messages = [{'role': 'user', 'content': 'Hello'}]
+        messages = [{"role": "user", "content": "Hello"}]
         response = agent._create_chat_completion(messages, use_functions=False)
 
         # Validate that the mocked method was called with the expected arguments
@@ -48,12 +48,12 @@ class TestBaseAgent(unittest.TestCase):
             messages=messages,
             stream=False,
             store=False,
-            metadata=None
+            metadata=None,
         )
 
         # Validate that the response is a MagicMock (mocked response)
         self.assertIsInstance(response, MagicMock)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

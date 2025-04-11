@@ -10,59 +10,51 @@ from nimbusagent.utils.helper import is_query_safe, FUNCTIONS_EMBEDDING_MODEL
 
 SYS_MSG = """You are a helpful assistant."""
 
-MODERATION_FAIL_MSG = """I'm sorry, I can't help you with that as it is not appropriate."""
+MODERATION_FAIL_MSG = (
+    """I'm sorry, I can't help you with that as it is not appropriate."""
+)
 
 HAVING_TROUBLE_MSG = """I'm sorry, I'm having trouble understanding you."""
-DEFAULT_MODEL_NAME = 'gpt-4-turbo'
+DEFAULT_MODEL_NAME = "gpt-4-turbo"
 DEFAULT_TEMP = 0.1
-DEFAULT_SECONDARY_MODEL_NAME = 'gpt-3.5-turbo'
+DEFAULT_SECONDARY_MODEL_NAME = "gpt-3.5-turbo"
 
 
 class BaseAgent:
     def __init__(
-            self,
-            openai_api_key: str = None,
-            model_name: str = DEFAULT_MODEL_NAME,
-            secondary_model_name: str = DEFAULT_SECONDARY_MODEL_NAME,
-            temperature: float = DEFAULT_TEMP,
-            max_tokens: int = 1000,
-
-            functions: Optional[list] = None,
-            functions_class_options: Optional[dict] = None,
-            functions_embeddings: Optional[List[dict]] = None,
-            functions_embeddings_model: str = FUNCTIONS_EMBEDDING_MODEL,
-            function_embeddings_fetcher: Optional[callable] = None,
-            functions_always_use: Optional[List[str]] = None,
-            functions_pattern_groups: Optional[List[dict]] = None,
-            function_pattern_mode: Literal['all', 'first'] = 'all',
-            functions_k_closest: int = 3,
-            function_min_similarity: float = 0.5,
-
-            function_max_tokens: int = 2000,
-            use_tool_calls: bool = True,
-
-            system_message: str = SYS_MSG,
-            message_history: Optional[List[Dict[str, str]]] = None,
-
-            calling_function_start_callback: Optional[callable] = None,
-            calling_function_stop_callback: Optional[callable] = None,
-
-            perform_moderation: bool = True,
-            moderation_fail_message: str = MODERATION_FAIL_MSG,
-
-            memory_max_entries: int = 20,
-            memory_max_tokens: int = 2000,
-
-            internal_thoughts_max_entries: int = 8,
-            loops_max: int = 10,
-
-            send_events: bool = False,
-            max_event_size: int = 2000,
-
-            on_complete: callable = None,
-
-            store_request: bool = False,
-            store_metadata: Dict[str, str] = None
+        self,
+        openai_api_key: str = None,
+        model_name: str = DEFAULT_MODEL_NAME,
+        secondary_model_name: str = DEFAULT_SECONDARY_MODEL_NAME,
+        temperature: float = DEFAULT_TEMP,
+        max_tokens: int = 1000,
+        functions: Optional[list] = None,
+        functions_class_options: Optional[dict] = None,
+        functions_embeddings: Optional[List[dict]] = None,
+        functions_embeddings_model: str = FUNCTIONS_EMBEDDING_MODEL,
+        function_embeddings_fetcher: Optional[callable] = None,
+        functions_always_use: Optional[List[str]] = None,
+        functions_pattern_groups: Optional[List[dict]] = None,
+        function_pattern_mode: Literal["all", "first"] = "all",
+        functions_k_closest: int = 3,
+        function_min_similarity: float = 0.5,
+        function_max_tokens: int = 2000,
+        use_tool_calls: bool = True,
+        system_message: str = SYS_MSG,
+        message_history: Optional[List[Dict[str, str]]] = None,
+        calling_function_start_callback: Optional[callable] = None,
+        calling_function_stop_callback: Optional[callable] = None,
+        perform_moderation: bool = True,
+        moderation_fail_message: str = MODERATION_FAIL_MSG,
+        memory_max_entries: int = 20,
+        memory_max_tokens: int = 2000,
+        internal_thoughts_max_entries: int = 8,
+        loops_max: int = 10,
+        send_events: bool = False,
+        max_event_size: int = 2000,
+        on_complete: callable = None,
+        store_request: bool = False,
+        store_metadata: Dict[str, str] = None,
     ):
         """
         Base Agent Class for Nimbus Agent
@@ -106,7 +98,13 @@ class BaseAgent:
             store_metadata: The metadata to store with the request (default: None)
         """
 
-        self.client = OpenAI(api_key=openai_api_key if openai_api_key is not None else os.getenv("OPENAI_API_KEY"))
+        self.client = OpenAI(
+            api_key=(
+                openai_api_key
+                if openai_api_key is not None
+                else os.getenv("OPENAI_API_KEY")
+            )
+        )
 
         # self.internal_thoughts: A list that captures the agent's intermediate
         # processing and thoughts during a single 'ask' session. It gets cleared
@@ -132,10 +130,12 @@ class BaseAgent:
         self.store_request = store_request
         self.store_metadata = store_metadata
 
-        self.chat_history = AgentMemory(max_messages=memory_max_entries, max_tokens=memory_max_tokens)
+        self.chat_history = AgentMemory(
+            max_messages=memory_max_entries, max_tokens=memory_max_tokens
+        )
         if message_history is not None:
             if self._history_needs_moderation(message_history):
-                raise ValueError('The message history contains inappropriate content.')
+                raise ValueError("The message history contains inappropriate content.")
             self.chat_history.set_chat_history(message_history)
 
         self.function_handler = self._init_function_handler(
@@ -149,7 +149,8 @@ class BaseAgent:
             functions_pattern_groups=functions_pattern_groups,
             function_pattern_mode=function_pattern_mode,
             function_max_tokens=function_max_tokens,
-            function_min_similarity=function_min_similarity)
+            function_min_similarity=function_min_similarity,
+        )
         self.use_tool_calls = use_tool_calls
 
     def set_system_message(self, message: str) -> None:
@@ -158,18 +159,20 @@ class BaseAgent:
         """
         self.system_message = {"role": "system", "content": message}
 
-    def _init_function_handler(self,
-                               functions: Optional[List],
-                               functions_class_options: Optional[dict],
-                               functions_embeddings: Optional[List],
-                               functions_embeddings_model: str = FUNCTIONS_EMBEDDING_MODEL,
-                               functions_k_closest: int = 3,
-                               function_embeddings_fetcher: Optional[callable] = None,
-                               function_min_similarity: float = 0.5,
-                               functions_always_use: Optional[List[str]] = None,
-                               functions_pattern_groups: Optional[List[dict]] = None,
-                               function_pattern_mode: Literal['all', 'first'] = 'all',
-                               function_max_tokens: int = 0) -> FunctionHandler:
+    def _init_function_handler(
+        self,
+        functions: Optional[List],
+        functions_class_options: Optional[dict],
+        functions_embeddings: Optional[List],
+        functions_embeddings_model: str = FUNCTIONS_EMBEDDING_MODEL,
+        functions_k_closest: int = 3,
+        function_embeddings_fetcher: Optional[callable] = None,
+        function_min_similarity: float = 0.5,
+        functions_always_use: Optional[List[str]] = None,
+        functions_pattern_groups: Optional[List[dict]] = None,
+        function_pattern_mode: Literal["all", "first"] = "all",
+        function_max_tokens: int = 0,
+    ) -> FunctionHandler:
         """Initializes the function handler.
         Returns a FunctionHandler instance.
 
@@ -179,7 +182,7 @@ class BaseAgent:
         :param functions_always_use: The list of functions to always use
         :param functions_pattern_groups: The list of function pattern groups to use
         :return: A FunctionHandler instance
-         """
+        """
 
         return FunctionHandler(
             functions=functions,
@@ -195,17 +198,19 @@ class BaseAgent:
             calling_function_start_callback=self.calling_function_start_callback,
             calling_function_stop_callback=self.calling_function_stop_callback,
             max_tokens=function_max_tokens,
-            chat_history=self.chat_history
+            chat_history=self.chat_history,
         )
 
     # noinspection PyUnresolvedReferences
     def _create_chat_completion(
-            self, messages: list, use_functions: bool = True,
-            function_call: Union[str, Literal['auto', 'none']] = 'auto',
-            stream=False,
-            use_secondary_model: bool = False, force_no_functions: bool = False
+        self,
+        messages: list,
+        use_functions: bool = True,
+        function_call: Union[str, Literal["auto", "none"]] = "auto",
+        stream=False,
+        use_secondary_model: bool = False,
+        force_no_functions: bool = False,
     ) -> openai.types.chat.ChatCompletion:
-
         """Creates a chat completion, streaming or not.
         :param messages: The messages to use
         :param use_functions: True if functions should be used
@@ -215,7 +220,9 @@ class BaseAgent:
         :param force_no_functions: True if functions should be forced to not be used
         :return: An openai chat completion
         """
-        model_name = self.secondary_model_name if use_secondary_model else self.model_name
+        model_name = (
+            self.secondary_model_name if use_secondary_model else self.model_name
+        )
 
         if use_functions and self.function_handler.functions and not force_no_functions:
             if self.use_tool_calls:
@@ -228,7 +235,7 @@ class BaseAgent:
                     tool_choice=function_call,
                     stream=stream,
                     store=self.store_request,
-                    metadata=self.store_metadata
+                    metadata=self.store_metadata,
                 )
             else:
                 # noinspection PyTypeChecker
@@ -240,7 +247,8 @@ class BaseAgent:
                     function_call=function_call,
                     stream=stream,
                     store=self.store_request,
-                    metadata=self.store_metadata)
+                    metadata=self.store_metadata,
+                )
         else:
             res = self.client.chat.completions.create(
                 model=model_name,
@@ -248,7 +256,8 @@ class BaseAgent:
                 messages=messages,
                 stream=stream,
                 store=self.store_request,
-                metadata=self.store_metadata)
+                metadata=self.store_metadata,
+            )
         return res
 
     def _history_needs_moderation(self, history: List[Dict[str, str]]) -> bool:
@@ -260,7 +269,7 @@ class BaseAgent:
         if not self.perform_moderation or not history:
             return False
 
-        content_list = [d['content'] for d in history if 'content' in d]
+        content_list = [d["content"] for d in history if "content" in d]
 
         return self._needs_moderation(" ".join(content_list))
 
@@ -281,10 +290,12 @@ class BaseAgent:
         :param role: The role of the message
         :param content: The content of the message
         """
-        self.chat_history.append({'role': role, 'content': content})
+        self.chat_history.append({"role": role, "content": content})
 
     # noinspection PyUnresolvedReferences
-    def get_last_response(self) -> Optional[Union[openai.types.chat.ChatCompletion, str]]:
+    def get_last_response(
+        self,
+    ) -> Optional[Union[openai.types.chat.ChatCompletion, str]]:
         """Returns the last response.
         :return: The last response
         """

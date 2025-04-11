@@ -11,10 +11,10 @@ class TestFuncResponses(unittest.TestCase):
         self.assertEqual(fr.summarize_only, True)
 
     def test_dict_func_response_initialization(self):
-        dfr = DictFuncResponse({'content': 'hello'})
-        self.assertEqual(dfr.data['content'], 'hello')
-        self.assertEqual(dfr.content, 'hello')
+        dfr = DictFuncResponse({"content": "hello"})
+        self.assertEqual(dfr.data["content"], "hello")
+        self.assertEqual(dfr.content, "hello")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

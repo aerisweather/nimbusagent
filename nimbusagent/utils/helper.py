@@ -23,7 +23,9 @@ def is_query_safe(query: str, api_key=None) -> bool:
             result = response.results[0]
 
             if result and result.flagged:
-                logging.debug(f"Query '{query}' was flagged by OpenAI's moderation API. {result}")
+                logging.debug(
+                    f"Query '{query}' was flagged by OpenAI's moderation API. {result}"
+                )
                 return False
 
         return True
@@ -44,9 +46,7 @@ def get_embedding(text, model=FUNCTIONS_EMBEDDING_MODEL, api_key=None):
     try:
         text = text.replace("\n", " ")
         client = OpenAI(api_key=api_key if api_key else os.environ["OPENAI_API_KEY"])
-        embedding = client.embeddings.create(
-            input=text,
-            model=model)
+        embedding = client.embeddings.create(input=text, model=model)
         return embedding.data[0].embedding
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -54,7 +54,7 @@ def get_embedding(text, model=FUNCTIONS_EMBEDDING_MODEL, api_key=None):
 
 
 def cosine_similarity(a, b):
-    """ get cosine similarity of two vector of same dimensions
+    """get cosine similarity of two vector of same dimensions
     :param a: The first vector.
     :param b: The second vector.
     :return: The cosine similarity of the two vectors.
@@ -62,11 +62,13 @@ def cosine_similarity(a, b):
     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
 
-def find_similar_embedding_list(query: str,
-                                function_embeddings: list,
-                                embeddings_model: str = FUNCTIONS_EMBEDDING_MODEL,
-                                k_nearest_neighbors: int = 1,
-                                min_similarity: float = 0.1):
+def find_similar_embedding_list(
+    query: str,
+    function_embeddings: list,
+    embeddings_model: str = FUNCTIONS_EMBEDDING_MODEL,
+    k_nearest_neighbors: int = 1,
+    min_similarity: float = 0.1,
+):
     """
     Return the k function descriptions most similar to given query.
     :param embeddings_model:
@@ -85,18 +87,24 @@ def find_similar_embedding_list(query: str,
 
     similarities = []
     for function_embedding in function_embeddings:
-        similarity = cosine_similarity(query_embedding, function_embedding['embedding'])
+        similarity = cosine_similarity(query_embedding, function_embedding["embedding"])
         if similarity >= min_similarity:
-            similarities.append({'name': function_embedding['name'], 'similarity': similarity})
+            similarities.append(
+                {"name": function_embedding["name"], "similarity": similarity}
+            )
 
     # Sort the results by similarity in descending order (most similar first)
-    sorted_similarities = sorted(similarities, key=lambda x: x['similarity'], reverse=True)
+    sorted_similarities = sorted(
+        similarities, key=lambda x: x["similarity"], reverse=True
+    )
 
     # Return the top k nearest neighbors
     return sorted_similarities[:k_nearest_neighbors]
 
 
-def combine_lists_unique(list1: Iterable[Any], set2: Union[Iterable[Any], set]) -> List[Any]:
+def combine_lists_unique(
+    list1: Iterable[Any], set2: Union[Iterable[Any], set]
+) -> List[Any]:
     """Combine two lists, removing duplicates.
     :param list1: The first list.
     :param set2: The second list. This can be a set or any iterable.

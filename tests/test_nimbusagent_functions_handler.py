@@ -4,7 +4,7 @@ from unittest.mock import patch, Mock
 
 from nimbusagent.functions.handler import FunctionHandler
 
-os.environ['OPENAI_API_KEY'] = "test"
+os.environ["OPENAI_API_KEY"] = "test"
 
 
 class TestFunctionHandler(unittest.TestCase):
@@ -31,5 +31,5 @@ class TestFunctionHandler(unittest.TestCase):
     # Add more tests for other methods and edge cases
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

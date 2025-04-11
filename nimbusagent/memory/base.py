@@ -14,11 +14,17 @@ class AgentMemory:
     :param initial_history:  The initial chat history to use.  If None, the chat history will be empty.
     """
 
-    def __init__(self, max_tokens: int = None, max_messages: int = None,
-                 initial_history: Optional[List[Dict[str, str]]] = None):
+    def __init__(
+        self,
+        max_tokens: int = None,
+        max_messages: int = None,
+        initial_history: Optional[List[Dict[str, str]]] = None,
+    ):
         self.encoding = tiktoken.get_encoding("cl100k_base")
         self.chat_history = []
-        self.token_counts = []  # Stores token counts for corresponding chat_history entries
+        self.token_counts = (
+            []
+        )  # Stores token counts for corresponding chat_history entries
         self.num_tokens = 0
         self.max_tokens = max_tokens
         self.max_messages = max_messages
@@ -48,15 +54,15 @@ class AgentMemory:
         :param entry:  The entry to add. The entry must have both 'role' and 'content' fields.
         """
         # logging.info(entry)
-        if 'role' not in entry or 'content' not in entry:
+        if "role" not in entry or "content" not in entry:
             raise ValueError("Each entry must have both 'role' and 'content' fields.")
 
-        content = entry['content'].strip()
+        content = entry["content"].strip()
         # skip empty messages
         if not content:
             return
 
-        token_count = self.tokenize(entry['content'])
+        token_count = self.tokenize(entry["content"])
         self.token_counts.append(token_count)
         self.chat_history.append(entry)  # content remains untokenized
         self.num_tokens += token_count
@@ -73,8 +79,9 @@ class AgentMemory:
         """
         Trim the chat history to the maximum number of tokens and entries.
         """
-        while (self.max_tokens is not None and self.num_tokens > self.max_tokens) or \
-                (self.max_messages is not None and len(self.chat_history) > self.max_messages):
+        while (self.max_tokens is not None and self.num_tokens > self.max_tokens) or (
+            self.max_messages is not None and len(self.chat_history) > self.max_messages
+        ):
             self.num_tokens -= self.token_counts.pop(0)
             self.chat_history.pop(0)
 
@@ -90,7 +97,9 @@ class AgentMemory:
         Get the chat history as text.
         :return:  The chat history as text, in "role: content" format.
         """
-        return "\n".join([f"{entry['role']}: {entry['content']}" for entry in self.chat_history])
+        return "\n".join(
+            [f"{entry['role']}: {entry['content']}" for entry in self.chat_history]
+        )
 
     def set_chat_history(self, new_history: List[Dict[str, str]]):
         """
@@ -102,16 +111,16 @@ class AgentMemory:
         for entry in new_history:
             # Ensure only 'role' and 'content' fields are present
             filtered_entry = {
-                'role': entry.get('role', '').strip(),
-                'content': entry.get('content', '').strip()
+                "role": entry.get("role", "").strip(),
+                "content": entry.get("content", "").strip(),
             }
 
             # Skip entries missing 'role' or 'content'
-            if not filtered_entry['role'] or not filtered_entry['content']:
+            if not filtered_entry["role"] or not filtered_entry["content"]:
                 continue
 
             # Skip duplicate consecutive entries based on 'content'
-            if last_entry is None or last_entry['content'] != filtered_entry['content']:
+            if last_entry is None or last_entry["content"] != filtered_entry["content"]:
                 self.add_entry(filtered_entry)
                 last_entry = filtered_entry
 
@@ -129,7 +138,9 @@ class AgentMemory:
         """
         return self.num_tokens
 
-    def resize(self, max_tokens: Optional[int] = None, max_messages: Optional[int] = None):
+    def resize(
+        self, max_tokens: Optional[int] = None, max_messages: Optional[int] = None
+    ):
         """
         Resize the chat history. If the new maximum number of tokens or entries is smaller than the current number of
         tokens or entries, the chat history will be trimmed to the new maximum.
