@@ -7,25 +7,25 @@ from nimbusagent.agent.base import BaseAgent
 os.environ["OPENAI_API_KEY"] = "some key"
 
 
-class TestBaseAgent(unittest.TestCase):
+class TestBaseAgent:
 
     @patch("openai.OpenAI")
     def test_initialization(self, mock_openai):
         agent = BaseAgent(openai_api_key="test_key")
-        self.assertEqual(agent.model_name, "gpt-4-turbo")
-        self.assertIsNotNone(agent.client)
+        assert agent.model_name == "gpt-4-turbo"
+        assert agent.client is not None
 
     def test_set_system_message(self):
         agent = BaseAgent()
         agent.set_system_message("Test Message")
         expected_message = {"role": "system", "content": "Test Message"}
-        self.assertEqual(agent.system_message, expected_message)
+        assert agent.system_message == expected_message
 
     @patch("nimbusagent.utils.helper.is_query_safe", return_value=False)
     def test_history_needs_moderation(self, mock_is_query_safe):
         agent = BaseAgent()
         history = [{"role": "user", "content": "inappropriate content"}]
-        self.assertTrue(agent._history_needs_moderation(history))
+        assert agent._history_needs_moderation(history) == True
 
     def test_create_chat_completion(self):
         agent = BaseAgent(openai_api_key="test_key")
@@ -52,8 +52,4 @@ class TestBaseAgent(unittest.TestCase):
         )
 
         # Validate that the response is a MagicMock (mocked response)
-        self.assertIsInstance(response, MagicMock)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert isinstance(response, MagicMock)
