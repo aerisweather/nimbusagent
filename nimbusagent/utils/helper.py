@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Union, List, Iterable, Any
+from typing import Iterable, Any
 
 import numpy as np
 from openai import OpenAI
@@ -102,9 +102,7 @@ def find_similar_embedding_list(
     return sorted_similarities[:k_nearest_neighbors]
 
 
-def combine_lists_unique(
-    list1: Iterable[Any], set2: Union[Iterable[Any], set]
-) -> List[Any]:
+def combine_lists_unique(list1: Iterable[Any], set2: Iterable[Any] | set) -> list[Any]:
     """Combine two lists, removing duplicates.
     :param list1: The first list.
     :param set2: The second list. This can be a set or any iterable.

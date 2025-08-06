@@ -1,5 +1,3 @@
-from typing import Optional, Union
-
 import openai
 
 from nimbusagent.agent.base import BaseAgent
@@ -17,7 +15,7 @@ class CompletionAgent(BaseAgent):
         super().__init__(*args, **kwargs)
 
     # noinspection PyUnresolvedReferences
-    def ask(self, query: str) -> Optional[str]:
+    def ask(self, query: str) -> str | None:
         """
         Ask the agent a question and return the response.
         :param query:  The query to ask the agent.
@@ -51,7 +49,7 @@ class CompletionAgent(BaseAgent):
     # noinspection PyUnresolvedReferences
     def _generate_response(
         self,
-    ) -> Optional[Union[openai.types.chat.ChatCompletion, str]]:
+    ) -> openai.types.chat.ChatCompletion | str | None:
         """
         Generate a response object based on the response from the AI
         :return:  The response object.

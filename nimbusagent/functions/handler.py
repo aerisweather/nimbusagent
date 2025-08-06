@@ -4,7 +4,7 @@ import json
 import logging
 import re
 from dataclasses import dataclass
-from typing import Optional, List, Dict, Any, Union, Callable, Type, Tuple, Literal
+from typing import Any, Callable, Type, Literal
 
 import tiktoken
 from openai.types.chat import ChatCompletionToolParam
@@ -27,7 +27,7 @@ class FunctionInfo:
 
     name: str
     definition: str
-    mapping: Union[Callable, Any]
+    mapping: Callable | Any
     mapping_name: str
     tokens: int
 
@@ -54,28 +54,28 @@ class FunctionHandler:
     functions_class_options = None
     func_mapping = None
     always_use = None
-    orig_functions: dict = None
+    orig_functions: dict | None = None
     pattern_groups = None
     pattern_mode = "all"
-    chat_history: AgentMemory = None
+    chat_history: AgentMemory | None = None
     processed_functions = None
     max_tokens = 0
 
     def __init__(
         self,
-        functions: list = None,
-        functions_class_options: dict = None,
-        embeddings: list = None,
+        functions: list | None = None,
+        functions_class_options: dict | None = None,
+        embeddings: list | None = None,
         embeddings_model: str = FUNCTIONS_EMBEDDING_MODEL,
-        embeddings_fetcher: Callable = None,
+        embeddings_fetcher: Callable | None = None,
         k_nearest: int = 3,
         min_similarity: float = 0.5,
-        always_use: list = None,
-        pattern_groups: list = None,
+        always_use: list | None = None,
+        pattern_groups: list | None = None,
         pattern_mode: Literal["all", "first"] = "all",
-        calling_function_start_callback: callable = None,
-        calling_function_stop_callback: callable = None,
-        chat_history: AgentMemory = None,
+        calling_function_start_callback: Callable | None = None,
+        calling_function_stop_callback: Callable | None = None,
+        chat_history: AgentMemory | None = None,
         max_tokens: int = 0,
     ):
 
@@ -102,7 +102,7 @@ class FunctionHandler:
         self.calling_function_start_callback = calling_function_start_callback
         self.calling_function_stop_callback = calling_function_stop_callback
 
-    def functions_to_tools(self) -> List[ChatCompletionToolParam]:
+    def functions_to_tools(self) -> list[ChatCompletionToolParam]:
         """
         Convert the functions defs to the new OpenAI tools format.
         :return:  The tools.
@@ -113,7 +113,7 @@ class FunctionHandler:
 
         return tools
 
-    def _get_function_info(self, func_name: str) -> Optional[FunctionInfo]:
+    def _get_function_info(self, func_name: str) -> FunctionInfo | None:
         """
         Get the FunctionInfo for the given function name.
         :param func_name:  The name of the function to get the FunctionInfo for.
@@ -138,7 +138,7 @@ class FunctionHandler:
             mapping_name=mapping_name,
         )
 
-    def _get_group_function(self, query: str) -> Optional[List[str]]:
+    def _get_group_function(self, query: str) -> list[str] | None:
         """
         Get the list of functions to use based on the pattern groups.
         :param query: The query to use.
@@ -164,7 +164,7 @@ class FunctionHandler:
 
         return function_names if function_names else None
 
-    def remove_functions_mappings(self, function_names: List[str]):
+    def remove_functions_mappings(self, function_names: list[str]):
         """
         Remove the given functions from the function mappings.
         :param function_names:  The list of function names to remove.
@@ -192,9 +192,7 @@ class FunctionHandler:
         """
         self._set_functions_and_mappings(self.processed_functions)
 
-    def _set_functions_and_mappings(
-        self, functions: Optional[List[FunctionInfo]] = None
-    ):
+    def _set_functions_and_mappings(self, functions: list[FunctionInfo] | None = None):
         """
         Set the functions and function mappings to the given functions.
         :param functions:  The list of functions to use.  If None, the functions will be parsed from
@@ -208,7 +206,7 @@ class FunctionHandler:
             self.func_mapping = None
 
     def get_functions_from_query_and_history(
-        self, query: str, history: List[Dict[str, Any]]
+        self, query: str, history: list[dict[str, Any]]
     ):
         """
         Get the functions to use based on the query and history.
@@ -298,7 +296,7 @@ class FunctionHandler:
         self._set_functions_and_mappings(processed_functions)
 
     @staticmethod
-    def parse_messages(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def parse_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Parse the messages to get the role and content fields.  If the messages do not have the role and content fields,
                 they will be ignored.
@@ -312,7 +310,7 @@ class FunctionHandler:
         ]
 
     @staticmethod
-    def parse_functions(functions: List[Union[Callable, Type]]) -> List[Dict[str, Any]]:
+    def parse_functions(functions: list[Callable | Type]) -> list[dict[str, Any]]:
         """
         Parse the functions to get the function metadata.
         :param functions:  The functions to parse. If None, the functions will be parsed from the function_handler.
@@ -323,8 +321,8 @@ class FunctionHandler:
         return [parser.func_metadata(func) for func in functions]
 
     def create_func_mapping(
-        self, items: List[Union[Callable, Type]]
-    ) -> Dict[str, Union[Callable, Any]]:
+        self, items: list[Callable | Type]
+    ) -> dict[str, Callable | Any]:
         """
         Create a function mapping from the given items.  The function mapping is a dictionary with the function name as
                 the key and the function as the value.
@@ -344,8 +342,8 @@ class FunctionHandler:
 
     @staticmethod
     def create_individual_func_mapping(
-        item: Union[Callable, Type],
-    ) -> Tuple[str, Callable]:
+        item: Callable | Type,
+    ) -> tuple[str, Callable]:
         """
         Create a function mapping from the given item.  The function mapping is a tuple with the function name as
                 the first element and the function as the second element.
@@ -362,7 +360,7 @@ class FunctionHandler:
 
     def handle_function_call(
         self, func_name: str, args_str: str
-    ) -> Optional[FuncResponse]:
+    ) -> FuncResponse | None:
         """
         Handle a function call.  This method will call the function and return the result.  If the result is a
                 FuncResponse, it will be returned as is.  If the result is a dictionary, it will be converted to a
@@ -390,7 +388,7 @@ class FunctionHandler:
         return response_obj
 
     @staticmethod
-    def _execute_method(item: Any, method_name: str, args: Dict[str, Any]) -> Any:
+    def _execute_method(item: Any, method_name: str, args: dict[str, Any]) -> Any:
         """
         Execute the given method on the given item with the given arguments.  If the item is a class type, an instance
                 of the class will be created and the method will be executed on the instance.  If the item is a class
@@ -455,7 +453,7 @@ class FunctionHandler:
         return ast.literal_eval(args_str)
 
     @property
-    def functions_list(self) -> List[Dict[str, Any]]:
+    def functions_list(self) -> list[dict[str, Any]]:
         """
         Get the list of functions.
         :return:  The list of functions. A list of dictionaries with 'name', 'parameters', and 'return' fields.

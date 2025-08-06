@@ -1,5 +1,3 @@
-from typing import List, Optional, Dict
-
 import tiktoken
 
 
@@ -19,7 +17,7 @@ class AgentMemory:
         max_tokens: int,
         max_messages: int,
         token_encoding: str,
-        initial_history: Optional[List[Dict[str, str]]] = None,
+        initial_history: list[dict[str, str]] | None = None,
     ):
         self.encoding = tiktoken.get_encoding(token_encoding)
         self.chat_history = []
@@ -49,7 +47,7 @@ class AgentMemory:
         self.token_counts = []
         self.num_tokens = 0
 
-    def add_entry(self, entry: Dict[str, str]):
+    def add_entry(self, entry: dict[str, str]):
         """
         Add an entry to the chat history.
         :param entry:  The entry to add. The entry must have both 'role' and 'content' fields.
@@ -69,7 +67,7 @@ class AgentMemory:
         self.num_tokens += token_count
         self._trim_excess_entries()
 
-    def append(self, entry: Dict[str, str]):
+    def append(self, entry: dict[str, str]):
         """
         Add an entry to the chat history.
         :param entry:  The entry to add. The entry must have both 'role' and 'content' fields.
@@ -86,7 +84,7 @@ class AgentMemory:
             self.num_tokens -= self.token_counts.pop(0)
             self.chat_history.pop(0)
 
-    def get_chat_history(self) -> List[Dict[str, str]]:
+    def get_chat_history(self) -> list[dict[str, str]]:
         """
         Get the chat history.
         :return:  The chat history.
@@ -102,7 +100,7 @@ class AgentMemory:
             [f"{entry['role']}: {entry['content']}" for entry in self.chat_history]
         )
 
-    def set_chat_history(self, new_history: List[Dict[str, str]]):
+    def set_chat_history(self, new_history: list[dict[str, str]]):
         """
         Set the chat history.
         :param new_history: The new chat history. Each entry must have both 'role' and 'content' fields.
@@ -141,8 +139,8 @@ class AgentMemory:
 
     def resize(
         self,
-        max_tokens_resize: Optional[int] = None,
-        max_messages_resize: Optional[int] = None,
+        max_tokens_resize: int | None = None,
+        max_messages_resize: int | None = None,
     ):
         """
         Resize the chat history. If the new maximum number of tokens or entries is smaller than the current number of

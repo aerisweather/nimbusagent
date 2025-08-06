@@ -1,5 +1,5 @@
 import os
-from typing import Optional, List, Union, Literal, Dict
+from typing import Callable, Literal
 
 import openai
 from openai import OpenAI
@@ -23,27 +23,27 @@ DEFAULT_SECONDARY_MODEL_NAME = "gpt-3.5-turbo"
 class BaseAgent:
     def __init__(
         self,
-        openai_api_key: str = None,
+        openai_api_key: str | None = None,
         model_name: str = DEFAULT_MODEL_NAME,
         secondary_model_name: str = DEFAULT_SECONDARY_MODEL_NAME,
         temperature: float = DEFAULT_TEMP,
         max_tokens: int = 1000,
-        functions: Optional[list] = None,
-        functions_class_options: Optional[dict] = None,
-        functions_embeddings: Optional[List[dict]] = None,
+        functions: list | None = None,
+        functions_class_options: dict | None = None,
+        functions_embeddings: list[dict] | None = None,
         functions_embeddings_model: str = FUNCTIONS_EMBEDDING_MODEL,
-        function_embeddings_fetcher: Optional[callable] = None,
-        functions_always_use: Optional[List[str]] = None,
-        functions_pattern_groups: Optional[List[dict]] = None,
+        function_embeddings_fetcher: Callable | None = None,
+        functions_always_use: list[str] | None = None,
+        functions_pattern_groups: list[dict] | None = None,
         function_pattern_mode: Literal["all", "first"] = "all",
         functions_k_closest: int = 3,
         function_min_similarity: float = 0.5,
         function_max_tokens: int = 2000,
         use_tool_calls: bool = True,
         system_message: str = SYS_MSG,
-        message_history: Optional[List[Dict[str, str]]] = None,
-        calling_function_start_callback: Optional[callable] = None,
-        calling_function_stop_callback: Optional[callable] = None,
+        message_history: list[dict[str, str]] | None = None,
+        calling_function_start_callback: Callable | None = None,
+        calling_function_stop_callback: Callable | None = None,
         perform_moderation: bool = True,
         moderation_fail_message: str = MODERATION_FAIL_MSG,
         memory_max_entries: int = 20,
@@ -53,9 +53,9 @@ class BaseAgent:
         loops_max: int = 10,
         send_events: bool = False,
         max_event_size: int = 2000,
-        on_complete: callable = None,
+        on_complete: Callable | None = None,
         store_request: bool = False,
-        store_metadata: Dict[str, str] = None,
+        store_metadata: dict[str, str] | None = None,
     ):
         """
         Base Agent Class for Nimbus Agent
@@ -164,15 +164,15 @@ class BaseAgent:
 
     def _init_function_handler(
         self,
-        functions: Optional[List],
-        functions_class_options: Optional[dict],
-        functions_embeddings: Optional[List],
+        functions: list,
+        functions_class_options: dict,
+        functions_embeddings: list,
         functions_embeddings_model: str = FUNCTIONS_EMBEDDING_MODEL,
         functions_k_closest: int = 3,
-        function_embeddings_fetcher: Optional[callable] = None,
+        function_embeddings_fetcher: Callable | None = None,
         function_min_similarity: float = 0.5,
-        functions_always_use: Optional[List[str]] = None,
-        functions_pattern_groups: Optional[List[dict]] = None,
+        functions_always_use: list[str] | None = None,
+        functions_pattern_groups: list[dict] | None = None,
         function_pattern_mode: Literal["all", "first"] = "all",
         function_max_tokens: int = 0,
     ) -> FunctionHandler:
@@ -209,7 +209,7 @@ class BaseAgent:
         self,
         messages: list,
         use_functions: bool = True,
-        function_call: Union[str, Literal["auto", "none"]] = "auto",
+        function_call: str | Literal["auto", "none"] = "auto",
         stream=False,
         use_secondary_model: bool = False,
         force_no_functions: bool = False,
@@ -263,7 +263,7 @@ class BaseAgent:
             )
         return res
 
-    def _history_needs_moderation(self, history: List[Dict[str, str]]) -> bool:
+    def _history_needs_moderation(self, history: list[tuple[str, str]]) -> bool:
         """Handles history moderation.
         Returns True if the history contains inappropriate content, False otherwise.
         :param history: The history to check
@@ -298,19 +298,19 @@ class BaseAgent:
     # noinspection PyUnresolvedReferences
     def get_last_response(
         self,
-    ) -> Optional[Union[openai.types.chat.ChatCompletion, str]]:
+    ) -> openai.types.chat.ChatCompletion | str | None:
         """Returns the last response.
         :return: The last response
         """
         return self.last_response
 
-    def get_chat_history(self) -> List[Dict[str, str]]:
+    def get_chat_history(self) -> list[dict[str, str]]:
         """Returns the chat history.
         :return: The chat history
         """
         return self.chat_history.get_chat_history()
 
-    def get_functions(self) -> Optional[list]:
+    def get_functions(self) -> list | None:
         """
         Returns the functions.
         :return: The functions

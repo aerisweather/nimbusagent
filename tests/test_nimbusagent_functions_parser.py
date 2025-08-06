@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import List
 import pytest
 from nimbusagent.functions.parser import (
     type_mapping,
@@ -18,8 +17,8 @@ class TestTypeMapping:
         [
             (int, (None, "integer")),
             (str, (None, "string")),
-            (List[int], ("array", "integer")),
-            (List[str], ("array", "string")),
+            (list[int], ("array", "integer")),
+            (list[str], ("array", "string")),
             (None, (None, "string")),
         ],
     )

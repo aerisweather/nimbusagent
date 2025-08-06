@@ -1,7 +1,7 @@
 import json
 import logging
 import time
-from typing import Generator, List
+from typing import Any, Generator, List
 
 from nimbusagent.agent.base import BaseAgent, HAVING_TROUBLE_MSG
 
@@ -74,7 +74,7 @@ class StreamingAgent(BaseAgent):
                     return out_content
                 return ""
 
-            def output_event(event_type: str, name: str, data: any):
+            def output_event(event_type: str, name: str, data: Any):
 
                 if not data:
                     return f"[[[{event_type}:{name}]]]"

@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Literal, Dict
+from typing import Any, Literal
 
 from nimbusagent.agent.completion import CompletionAgent
 
@@ -9,7 +9,7 @@ from nimbusagent.agent.completion import CompletionAgent
 # In production, this could be your backend API or an external API
 def get_current_weather(
     location: str, unit: Literal["celsius", "fahrenheit"] = "fahrenheit"
-) -> Dict:
+) -> dict[str, Any]:
     """
     Get the current weather in a given location
 

@@ -1,5 +1,3 @@
-from typing import Optional, Dict
-
 from pydantic import BaseModel
 
 
@@ -19,13 +17,13 @@ class FuncResponse(BaseModel):
     :param force_no_functions:  Whether to force no functions.
     """
 
-    name: str = None
-    arguments: str = None
-    content: str = None
+    name: str | None = None
+    arguments: str | None = None
+    content: str | None = None
     summarize_only: bool = False
     send_directly_to_user: bool = False
-    post_content: Optional[str] = None
-    stream_data: Optional[dict] = None
+    post_content: str | None = None
+    stream_data: dict | None = None
     use_secondary_model: bool = False
     force_no_functions: bool = False
 
@@ -38,9 +36,9 @@ class DictFuncResponse(FuncResponse):
     force no functions.
     """
 
-    data: Dict = None
+    data: dict | None = None
 
-    def __init__(self, init_data: Dict):
+    def __init__(self, init_data: dict):
         super().__init__()
         self.data = init_data
         self.content = init_data.get("content", "")
