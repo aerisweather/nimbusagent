@@ -344,7 +344,7 @@ class FunctionHandler:
 
     @staticmethod
     def create_individual_func_mapping(
-        item: Union[Callable, Type]
+        item: Union[Callable, Type],
     ) -> Tuple[str, Callable]:
         """
         Create a function mapping from the given item.  The function mapping is a tuple with the function name as

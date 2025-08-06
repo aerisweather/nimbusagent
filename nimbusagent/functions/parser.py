@@ -93,7 +93,7 @@ def extract_enum_values(dtype) -> typing.Optional[typing.List[str]]:
             None. If the type is a List of Enum or Literal, it will return the values of the Enum or Literal as a list.
     """
     # Check if it's an Enum type
-    if dtype.__class__.__name__ == "EnumMeta":
+    if dtype.__class__.__name__ in {"EnumMeta", "EnumType"}:
         return [e.value for e in dtype]
 
         # Check if it's a typing.Literal type (or similar constructs in the typing module)
